@@ -1,0 +1,3 @@
+- test with playwright to verify
+- logging into the application has to be the first step in the testing
+- you need to validate that the fix implemented actually works, preferably by using playwright to use the actual methods put in place

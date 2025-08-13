@@ -1,0 +1,428 @@
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { PlaybackState } from '../types';
+
+export interface UseAudioPlayerOptions {
+  onLoadStart?: () => void;
+  onLoadEnd?: () => void;
+  onPlay?: () => void;
+  onPause?: () => void;
+  onEnd?: () => void;
+  onError?: (error: Error) => void;
+  onTimeUpdate?: (currentTime: number, duration: number) => void;
+}
+
+export const useAudioPlayer = (options: UseAudioPlayerOptions = {}) => {
+  const {
+    onLoadStart,
+    onLoadEnd,
+    onPlay,
+    onPause,
+    onEnd,
+    onError,
+    onTimeUpdate
+  } = options;
+
+  const [state, setState] = useState<PlaybackState>({
+    isPlaying: false,
+    currentTime: 0,
+    duration: 0,
+    volume: 1,
+  });
+
+  const [isLoading, setIsLoading] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const progressUpdateRef = useRef<NodeJS.Timeout | null>(null);
+
+  const load = useCallback(async (src: string) => {
+    try {
+      setIsLoading(true);
+      onLoadStart?.();
+
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+
+      const audio = new Audio();
+      console.log('[useAudioPlayer] Created new Audio element for src:', src);
+      
+      // Check audio format compatibility
+      const getFileExtension = (url: string) => {
+        const parts = url.split('.');
+        return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : '';
+      };
+      
+      const extension = getFileExtension(src);
+      console.log('[useAudioPlayer] Detected audio format:', extension);
+      
+      // Test format support
+      const canPlayWebM = audio.canPlayType('audio/webm');
+      const canPlayMP3 = audio.canPlayType('audio/mpeg');
+      const canPlayWAV = audio.canPlayType('audio/wav');
+      
+      console.log('[useAudioPlayer] Browser audio support:', {
+        webm: canPlayWebM,
+        mp3: canPlayMP3,
+        wav: canPlayWAV,
+        detectedFormat: extension
+      });
+      
+      if (extension === 'webm' && !canPlayWebM) {
+        console.warn('[useAudioPlayer] WebM format may not be fully supported by this browser');
+      }
+      
+      // Add comprehensive event listeners for debugging
+      audio.addEventListener('loadstart', () => {
+        console.log('[useAudioPlayer] loadstart event fired');
+      });
+
+      audio.addEventListener('loadeddata', () => {
+        console.log('[useAudioPlayer] loadeddata event fired - audio data loaded');
+        console.log('[useAudioPlayer] Audio properties:', {
+          duration: audio.duration,
+          readyState: audio.readyState,
+          networkState: audio.networkState,
+          currentTime: audio.currentTime
+        });
+      });
+
+      // Set up loading timeout (30 seconds) - declare before event listeners
+      let loadingTimeout: NodeJS.Timeout;
+
+      audio.addEventListener('loadedmetadata', () => {
+        console.log('[useAudioPlayer] loadedmetadata event fired');
+        console.log('[useAudioPlayer] Metadata loaded:', {
+          duration: audio.duration,
+          readyState: audio.readyState,
+          networkState: audio.networkState,
+          paused: audio.paused,
+          ended: audio.ended
+        });
+        
+        // Clear loading timeout on successful metadata load
+        if (loadingTimeout) {
+          clearTimeout(loadingTimeout);
+          console.log('[useAudioPlayer] Loading timeout cleared - metadata loaded successfully');
+        }
+        
+        setState(prev => ({
+          ...prev,
+          duration: audio.duration,
+          currentTime: 0,
+        }));
+        setIsLoading(false);
+        onLoadEnd?.();
+        console.log('[useAudioPlayer] Loading state set to false, onLoadEnd called');
+      });
+
+      audio.addEventListener('canplay', () => {
+        console.log('[useAudioPlayer] canplay event fired - can start playback');
+        
+        // If loadedmetadata hasn't fired yet but we can play, ensure loading is false
+        if (audio.readyState >= 2 && audioRef.current === audio) {
+          console.log('[useAudioPlayer] canplay: ensuring loading state is false');
+          if (audio.duration > 0) {
+            setState(prev => ({
+              ...prev,
+              duration: audio.duration,
+            }));
+          }
+          setIsLoading(false);
+          onLoadEnd?.();
+        }
+      });
+
+      audio.addEventListener('canplaythrough', () => {
+        console.log('[useAudioPlayer] canplaythrough event fired - can play without buffering');
+        
+        // Ensure loading is definitely false when we can play through
+        if (audioRef.current === audio) {
+          setIsLoading(false);
+        }
+      });
+
+      // Additional event handler for when data loads but metadata doesn't fire immediately
+      audio.addEventListener('loadeddata', () => {
+        console.log('[useAudioPlayer] loadeddata event fired - checking if metadata loaded');
+        
+        // Give metadata a chance to load, but set up fallback
+        setTimeout(() => {
+          // Check current state (not the captured isLoading)
+          const currentIsLoading = audioRef.current === audio; // Only proceed if this is still the current audio
+          
+          if (currentIsLoading && audio.readyState >= 2 && audio.duration > 0) {
+            console.log('[useAudioPlayer] Data loaded with valid duration - setting loading to false');
+            setState(prev => ({
+              ...prev,
+              duration: audio.duration,
+              currentTime: 0,
+            }));
+            setIsLoading(false);
+            onLoadEnd?.();
+          } else if (currentIsLoading && audio.readyState >= 2 && audio.duration === 0) {
+            console.warn('[useAudioPlayer] Data loaded but duration is 0 - attempting fallback');
+            
+            // Try to estimate duration by seeking to end briefly
+            const originalTime = audio.currentTime;
+            audio.currentTime = 999999; // Seek to very far position
+            
+            setTimeout(() => {
+              if (audio.duration > 0) {
+                console.log('[useAudioPlayer] Fallback duration detection successful:', audio.duration);
+                audio.currentTime = originalTime; // Reset position
+                setState(prev => ({
+                  ...prev,
+                  duration: audio.duration,
+                  currentTime: 0,
+                }));
+                setIsLoading(false);
+                onLoadEnd?.();
+              } else {
+                console.error('[useAudioPlayer] Fallback failed - unable to determine duration');
+                const formatError = new Error('Audio format may be unsupported: Unable to read audio metadata.');
+                onError?.(formatError);
+                setIsLoading(false);
+              }
+            }, 500);
+          }
+        }, 2000); // Wait 2 seconds for metadata, then check state
+      });
+
+      audio.addEventListener('timeupdate', () => {
+        setState(prev => ({
+          ...prev,
+          currentTime: audio.currentTime,
+        }));
+        onTimeUpdate?.(audio.currentTime, audio.duration);
+      });
+
+      audio.addEventListener('play', () => {
+        setState(prev => ({ ...prev, isPlaying: true }));
+        onPlay?.();
+      });
+
+      audio.addEventListener('pause', () => {
+        setState(prev => ({ ...prev, isPlaying: false }));
+        onPause?.();
+      });
+
+      audio.addEventListener('ended', () => {
+        setState(prev => ({
+          ...prev,
+          isPlaying: false,
+          currentTime: 0,
+        }));
+        onEnd?.();
+      });
+
+      audio.addEventListener('progress', () => {
+        // Progress event - data is downloading
+      });
+
+      audio.addEventListener('stalled', () => {
+        console.warn('[useAudioPlayer] stalled event - download stalled');
+      });
+
+      audio.addEventListener('suspend', () => {
+        console.log('[useAudioPlayer] suspend event - download suspended');
+      });
+
+      audio.addEventListener('abort', () => {
+        console.warn('[useAudioPlayer] abort event - download aborted');
+      });
+
+      audio.addEventListener('error', (event) => {
+        console.error('[useAudioPlayer] error event fired');
+        console.error('[useAudioPlayer] Audio error details:', {
+          error: audio.error,
+          errorCode: audio.error?.code,
+          errorMessage: audio.error?.message,
+          networkState: audio.networkState,
+          readyState: audio.readyState,
+          src: audio.src
+        });
+        
+        const errorMessages: { [key: number]: string } = {
+          1: 'MEDIA_ERR_ABORTED - The user aborted the audio',
+          2: 'MEDIA_ERR_NETWORK - Network error while downloading audio', 
+          3: 'MEDIA_ERR_DECODE - Error decoding the audio file',
+          4: 'MEDIA_ERR_SRC_NOT_SUPPORTED - Audio format not supported'
+        };
+        
+        const errorCode = audio.error?.code || 0;
+        const errorMsg = errorMessages[errorCode] || `Unknown audio error (code: ${errorCode})`;
+        const error = new Error(`Audio loading error: ${errorMsg}`);
+        onError?.(error);
+        setIsLoading(false);
+      });
+
+      // Set source and start loading
+      console.log('[useAudioPlayer] Setting audio.src and calling load()');
+      audio.src = src;
+      audio.load();
+      audioRef.current = audio;
+
+      // Log initial state after setup
+      setTimeout(() => {
+        console.log('[useAudioPlayer] Audio element state after setup:', {
+          src: audio.src,
+          readyState: audio.readyState,
+          networkState: audio.networkState,
+          duration: audio.duration,
+          paused: audio.paused
+        });
+      }, 100);
+
+      // Set up loading timeout after audio loading starts
+      loadingTimeout = setTimeout(() => {
+        console.warn('[useAudioPlayer] Loading timeout reached - no metadata loaded after 30 seconds');
+        if (audio.readyState === 0) {
+          console.error('[useAudioPlayer] Audio element still in HAVE_NOTHING state after timeout');
+          const timeoutError = new Error('Audio loading timeout: The audio file took too long to load. This may be due to a slow connection or an unsupported audio format.');
+          onError?.(timeoutError);
+          setIsLoading(false);
+        } else if (audio.readyState < 1) {
+          console.warn('[useAudioPlayer] Audio loaded but no metadata - forcing load end');
+          // Try to force load end if data exists but metadata doesn't
+          setIsLoading(false);
+          onLoadEnd?.();
+        }
+      }, 30000);
+
+    } catch (error) {
+      const audioError = error instanceof Error ? error : new Error('Unknown error occurred');
+      onError?.(audioError);
+      setIsLoading(false);
+    }
+  }, [onLoadStart, onLoadEnd, onPlay, onPause, onEnd, onError, onTimeUpdate]);
+
+  const play = useCallback(async () => {
+    if (audioRef.current) {
+      try {
+        await audioRef.current.play();
+      } catch (error) {
+        const playError = error instanceof Error ? error : new Error('Play error occurred');
+        onError?.(playError);
+      }
+    }
+  }, [onError]);
+
+  const pause = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+  }, []);
+
+  const stop = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+  }, []);
+
+  const seek = useCallback((time: number) => {
+    if (audioRef.current && !isNaN(audioRef.current.duration)) {
+      const clampedTime = Math.max(0, Math.min(time, audioRef.current.duration));
+      audioRef.current.currentTime = clampedTime;
+      setState(prev => ({
+        ...prev,
+        currentTime: clampedTime,
+      }));
+    }
+  }, []);
+
+  const setVolume = useCallback((volume: number) => {
+    const clampedVolume = Math.max(0, Math.min(1, volume));
+    if (audioRef.current) {
+      audioRef.current.volume = clampedVolume;
+    }
+    setState(prev => ({
+      ...prev,
+      volume: clampedVolume,
+    }));
+  }, []);
+
+  const mute = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.muted = true;
+    }
+  }, []);
+
+  const unmute = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.muted = false;
+    }
+  }, []);
+
+  const togglePlayPause = useCallback(() => {
+    if (state.isPlaying) {
+      pause();
+    } else {
+      play();
+    }
+  }, [state.isPlaying, play, pause]);
+
+  const skipForward = useCallback((seconds: number = 10) => {
+    if (audioRef.current) {
+      const newTime = Math.min(audioRef.current.currentTime + seconds, audioRef.current.duration);
+      seek(newTime);
+    }
+  }, [seek]);
+
+  const skipBackward = useCallback((seconds: number = 10) => {
+    if (audioRef.current) {
+      const newTime = Math.max(audioRef.current.currentTime - seconds, 0);
+      seek(newTime);
+    }
+  }, [seek]);
+
+  const formatTime = useCallback((seconds: number): string => {
+    if (isNaN(seconds)) return '0:00';
+    
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    
+    if (hrs > 0) {
+      return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }, []);
+
+  const getProgress = useCallback((): number => {
+    if (state.duration === 0) return 0;
+    return (state.currentTime / state.duration) * 100;
+  }, [state.currentTime, state.duration]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+        audioRef.current.load();
+      }
+      if (progressUpdateRef.current) {
+        clearInterval(progressUpdateRef.current);
+      }
+    };
+  }, []);
+
+  return {
+    ...state,
+    isLoading,
+    load,
+    play,
+    pause,
+    stop,
+    seek,
+    setVolume,
+    mute,
+    unmute,
+    togglePlayPause,
+    skipForward,
+    skipBackward,
+    formatTime,
+    getProgress,
+  };
+};

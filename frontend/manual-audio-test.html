@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual Audio Test</title>
+</head>
+<body>
+    <h1>Manual Audio Playback Test</h1>
+    <p>Testing our custom Django audio serving endpoint with proper MIME types.</p>
+    
+    <h2>Test Files:</h2>
+    
+    <!-- Test 1: Small test file -->
+    <h3>1. Test Audio (small file):</h3>
+    <audio controls preload="metadata" style="width: 100%; margin: 10px 0;">
+        <source src="http://localhost:8011/media/audio/1/test_audio.webm" type="audio/webm">
+        Your browser does not support the audio element.
+    </audio>
+    <p>URL: <a href="http://localhost:8011/media/audio/1/test_audio.webm" target="_blank">http://localhost:8011/media/audio/1/test_audio.webm</a></p>
+    
+    <!-- Test 2: The original problematic file -->
+    <h3>2. Recording 1755013838641 (original problematic file):</h3>
+    <audio controls preload="metadata" style="width: 100%; margin: 10px 0;">
+        <source src="http://localhost:8011/media/audio/1/recording-1755013838641.webm" type="audio/webm">
+        Your browser does not support the audio element.
+    </audio>
+    <p>URL: <a href="http://localhost:8011/media/audio/1/recording-1755013838641.webm" target="_blank">http://localhost:8011/media/audio/1/recording-1755013838641.webm</a></p>
+    
+    <!-- Test 3: Another recording for comparison -->
+    <h3>3. Recording 1755042801685 (recent file):</h3>
+    <audio controls preload="metadata" style="width: 100%; margin: 10px 0;">
+        <source src="http://localhost:8011/media/audio/1/recording-1755042801685.webm" type="audio/webm">
+        Your browser does not support the audio element.
+    </audio>
+    <p>URL: <a href="http://localhost:8011/media/audio/1/recording-1755042801685.webm" target="_blank">http://localhost:8011/media/audio/1/recording-1755042801685.webm</a></p>
+    
+    <h2>Test Results:</h2>
+    <div id="results"></div>
+    
+    <script>
+        // Test script to check if audio loads properly
+        document.addEventListener('DOMContentLoaded', function() {
+            const audioElements = document.querySelectorAll('audio');
+            const resultsDiv = document.getElementById('results');
+            
+            console.log('🧪 Manual Audio Test Started');
+            
+            audioElements.forEach((audio, index) => {
+                const testNumber = index + 1;
+                const url = audio.querySelector('source').src;
+                
+                console.log(`🎵 Testing audio ${testNumber}: ${url}`);
+                
+                audio.addEventListener('loadstart', () => {
+                    console.log(`✅ Audio ${testNumber}: Load started`);
+                    resultsDiv.innerHTML += `<p>✅ Audio ${testNumber}: Load started</p>`;
+                });
+                
+                audio.addEventListener('loadedmetadata', () => {
+                    console.log(`✅ Audio ${testNumber}: Metadata loaded (duration: ${audio.duration}s)`);
+                    resultsDiv.innerHTML += `<p>✅ Audio ${testNumber}: Metadata loaded (duration: ${audio.duration.toFixed(2)}s)</p>`;
+                });
+                
+                audio.addEventListener('canplay', () => {
+                    console.log(`✅ Audio ${testNumber}: Ready to play`);
+                    resultsDiv.innerHTML += `<p>✅ Audio ${testNumber}: Ready to play</p>`;
+                });
+                
+                audio.addEventListener('error', (e) => {
+                    const errorCode = audio.error ? audio.error.code : 'unknown';
+                    const errorMessage = audio.error ? audio.error.message : 'Unknown error';
+                    console.error(`❌ Audio ${testNumber}: Error (code: ${errorCode}, message: ${errorMessage})`);
+                    resultsDiv.innerHTML += `<p style="color: red;">❌ Audio ${testNumber}: Error (code: ${errorCode}, message: ${errorMessage})</p>`;
+                });
+                
+                // Try to load the audio
+                audio.load();
+            });
+            
+            console.log('🎯 Audio loading initiated for all test files');
+        });
+    </script>
+</body>
+</html>

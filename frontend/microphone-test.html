@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Microphone Test</title>
+</head>
+<body>
+    <h2>Direct Microphone Test</h2>
+    <button id="testBtn">Test Microphone Access</button>
+    <div id="result"></div>
+    
+    <script>
+        document.getElementById('testBtn').onclick = async () => {
+            const result = document.getElementById('result');
+            result.innerHTML = 'Testing...';
+            
+            try {
+                console.log('Starting direct getUserMedia test...');
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                console.log('✅ SUCCESS: getUserMedia worked!', {
+                    streamId: stream.id,
+                    active: stream.active,
+                    tracks: stream.getTracks().length
+                });
+                
+                result.innerHTML = '✅ SUCCESS: Microphone access granted!';
+                
+                // Clean up
+                stream.getTracks().forEach(track => track.stop());
+                
+            } catch (error) {
+                console.error('❌ FAILED:', error);
+                result.innerHTML = `❌ FAILED: ${error.name} - ${error.message}`;
+            }
+        };
+    </script>
+</body>
+</html>
