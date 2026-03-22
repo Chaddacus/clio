@@ -38,7 +38,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'preferred_language', 'audio_quality', 'storage_quota_mb',
             'storage_used_mb', 'storage_percentage', 'created_at'
         )
-        read_only_fields = ('storage_used_mb', 'created_at')
+        read_only_fields = ('storage_used_mb', 'storage_quota_mb', 'created_at')
     
     def get_storage_percentage(self, obj):
         if obj.storage_quota_mb == 0:
