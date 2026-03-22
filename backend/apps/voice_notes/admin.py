@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import VoiceNote, Tag, TranscriptionSegment
+
+from .models import Tag, TranscriptionSegment, VoiceNote
 
 
 @admin.register(Tag)
@@ -23,7 +24,7 @@ class VoiceNoteAdmin(admin.ModelAdmin):
     readonly_fields = ('file_size_bytes', 'file_size_mb', 'created_at', 'updated_at')
     filter_horizontal = ('tags',)
     inlines = [TranscriptionSegmentInline]
-    
+
     fieldsets = (
         ('Basic Information', {
             'fields': ('user', 'title', 'status', 'is_favorite')
@@ -46,7 +47,7 @@ class VoiceNoteAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-    
+
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('user').prefetch_related('tags')
 
@@ -57,6 +58,6 @@ class TranscriptionSegmentAdmin(admin.ModelAdmin):
     list_filter = ('voice_note__language_detected', 'speaker_id')
     search_fields = ('text', 'voice_note__title')
     readonly_fields = ('duration',)
-    
+
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('voice_note__user')

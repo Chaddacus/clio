@@ -1,4 +1,5 @@
-from django.urls import path, include
+from django.urls import path
+
 from apps.voice_notes import views
 
 urlpatterns = [

@@ -15,17 +15,17 @@ class UserProfile(models.Model):
         ('ko-KR', 'Korean'),
         ('zh-CN', 'Chinese (Simplified)'),
     ]
-    
+
     AUDIO_QUALITY_CHOICES = [
         ('low', 'Low (8kHz)'),
         ('medium', 'Medium (16kHz)'),
         ('high', 'High (44.1kHz)'),
     ]
-    
+
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     preferred_language = models.CharField(
-        max_length=10, 
-        choices=LANGUAGE_CHOICES, 
+        max_length=10,
+        choices=LANGUAGE_CHOICES,
         default='en-US'
     )
     audio_quality = models.CharField(
@@ -37,10 +37,10 @@ class UserProfile(models.Model):
     storage_used_mb = models.FloatField(default=0.0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     def __str__(self):
         return f"{self.user.username}'s Profile"
-    
+
     class Meta:
         verbose_name = 'User Profile'
         verbose_name_plural = 'User Profiles'

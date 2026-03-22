@@ -1,7 +1,7 @@
-import os
-from pathlib import Path
-from decouple import config
 from datetime import timedelta
+from pathlib import Path
+
+from decouple import config
 from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent

@@ -1,7 +1,7 @@
 import pytest
-from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework import status
-from apps.voice_notes.models import VoiceNote, Tag
+
+from apps.voice_notes.models import Tag, VoiceNote
 
 
 @pytest.mark.django_db
