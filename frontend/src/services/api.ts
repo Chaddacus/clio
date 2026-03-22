@@ -96,45 +96,21 @@ export const voiceNotesAPI = {
   },
   
   create: (data: CreateVoiceNoteData): Promise<AxiosResponse<ApiResponse<VoiceNote>>> => {
-    console.log('[voiceNotesAPI] Creating voice note:', {
-      audioFileName: data.audio_file.name,
-      audioFileSize: data.audio_file.size,
-      audioFileType: data.audio_file.type,
-      title: data.title,
-      tagIds: data.tag_ids
-    });
-
     const formData = new FormData();
     formData.append('audio_file', data.audio_file);
-    
+
     if (data.title) {
       formData.append('title', data.title);
     }
-    
+
     if (data.tag_ids) {
       data.tag_ids.forEach(id => formData.append('tag_ids', id.toString()));
     }
 
-    console.log('[voiceNotesAPI] FormData prepared, making POST request to /notes/');
-    
     return api.post('/notes/', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
-    }).then(response => {
-      console.log('[voiceNotesAPI] Create request successful:', {
-        status: response.status,
-        data: response.data
-      });
-      return response;
-    }).catch(error => {
-      console.error('[voiceNotesAPI] Create request failed:', {
-        message: error.message,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data
-      });
-      throw error;
     });
   },
   
