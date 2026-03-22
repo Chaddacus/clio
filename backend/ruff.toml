@@ -1,0 +1,9 @@
+line-length = 120
+target-version = "py39"
+
+[lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]  # line length handled by formatter
+
+[lint.per-file-ignores]
+"*/migrations/*.py" = ["E", "F", "W", "I"]

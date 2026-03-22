@@ -1,13 +1,14 @@
 import logging
 
+from django.contrib.auth.models import User
 from rest_framework import generics, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.contrib.auth.models import User
+
 from .models import UserProfile
-from .serializers import UserRegistrationSerializer, UserProfileSerializer, UserSerializer
+from .serializers import UserProfileSerializer, UserRegistrationSerializer, UserSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -16,14 +17,14 @@ class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = (AllowAny,)
     serializer_class = UserRegistrationSerializer
-    
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        
+
         refresh = RefreshToken.for_user(user)
-        
+
         return Response({
             'success': True,
             'message': 'User registered successfully',
@@ -40,11 +41,11 @@ class RegisterView(generics.CreateAPIView):
 class ProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserProfileSerializer
     permission_classes = [IsAuthenticated]
-    
+
     def get_object(self):
         profile, created = UserProfile.objects.get_or_create(user=self.request.user)
         return profile
-    
+
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
@@ -52,14 +53,14 @@ class ProfileView(generics.RetrieveUpdateAPIView):
             'success': True,
             'data': serializer.data
         })
-    
+
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
-        
+
         return Response({
             'success': True,
             'message': 'Profile updated successfully',
@@ -75,7 +76,7 @@ def logout_view(request):
         if refresh_token:
             token = RefreshToken(refresh_token)
             token.blacklist()
-        
+
         return Response({
             'success': True,
             'message': 'Logged out successfully'
