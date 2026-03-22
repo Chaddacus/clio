@@ -1,6 +1,10 @@
 # Clio - AI-Powered Voice Transcription Platform
 
+[![CI](https://github.com/Chaddacus/clio/actions/workflows/ci.yml/badge.svg)](https://github.com/Chaddacus/clio/actions/workflows/ci.yml)
+
 A comprehensive voice transcription and note-taking platform that leverages advanced AI technology with real-time speech-to-text capabilities using OpenAI's Whisper API. Built with Django REST Framework backend and React TypeScript frontend.
+
+For production deployment, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## ✨ Features
 
@@ -325,35 +329,34 @@ class WhisperTranscriptionService:
 
 **Note:** Microphone access requires HTTPS in production environments.
 
-## 🧪 Testing Strategy
+## 🧪 Testing
 
-### Backend Testing
-- **Django TestCase** for model and business logic testing
-- **APITestCase** for comprehensive endpoint testing
-- **Integration tests** for transcription workflows
-- **Error handling validation** for edge cases
+### Backend (pytest-django)
+- 25+ tests covering auth, voice notes, serializers, API contracts
+- Runs against SQLite in CI, PostgreSQL in Docker
 
-### Frontend Testing
-- **Jest** with **React Testing Library** for component testing
-- **End-to-end testing** with **Playwright** for user workflows
-- **Cross-browser testing** across Chrome, Firefox, Safari
-- **Visual regression testing** with screenshot comparison
-- **Performance testing** for recording and playback
+### Frontend (Playwright E2E)
+- Auth setup: register + login with storage state persistence
+- Dashboard, profile, and health check specs
+- Login-first flow per CLAUDE.md requirements
 
-### Test Execution
+### Running Tests
 ```bash
 # Backend tests
-docker-compose exec backend python manage.py test
+cd backend && pytest --cov=apps
 
-# Frontend unit tests
-cd frontend && npm test
+# Linting
+cd backend && ruff check .
 
-# End-to-end tests
-cd frontend && npx playwright test
+# E2E tests (requires running app)
+cd frontend && npx playwright test --project=chromium
 
-# Cross-browser E2E tests
-cd frontend && npx playwright test --project=chromium --project=firefox --project=webkit
+# Frontend build check
+cd frontend && npm ci && npm run build
 ```
+
+### CI
+GitHub Actions runs on every PR: backend lint + test, frontend build, Playwright E2E.
 
 ## 🐛 Troubleshooting
 
