@@ -90,7 +90,7 @@ class VoiceNoteListCreateView(generics.ListCreateAPIView):
             return Response({
                 'success': False,
                 'message': 'Voice note created but transcription failed',
-                'errors': {'transcription': [str(e)]},
+                'errors': {'transcription': ['Transcription service error. Please try again.']},
                 'data': VoiceNoteDetailSerializer(voice_note, context={'request': request}).data
             }, status=status.HTTP_201_CREATED)
     
@@ -274,11 +274,11 @@ def transcribe_audio(request):
             }, status=status.HTTP_400_BAD_REQUEST)
             
     except Exception as e:
-        logger.error(f"Transcription API error: {str(e)}")
+        logger.error(f"Transcription API error: {str(e)}", exc_info=True)
         return Response({
             'success': False,
             'message': 'Internal transcription error',
-            'errors': {'transcription': [str(e)]}
+            'errors': {'transcription': ['An unexpected error occurred. Please try again.']}
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -375,20 +375,20 @@ def retranscribe_voice_note(request, pk):
             note.status = 'failed'
             note.error_message = f"Re-transcription error: {str(e)}"
             note.save()
-            
-            logger.error(f"Re-transcription service error for voice note {pk}: {str(e)}")
+
+            logger.error(f"Re-transcription service error for voice note {pk}: {str(e)}", exc_info=True)
             return Response({
                 'success': False,
                 'message': 'Internal re-transcription error',
-                'errors': {'transcription': [str(e)]}
+                'errors': {'transcription': ['An unexpected error occurred. Please try again.']}
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            
+
     except Exception as e:
-        logger.error(f"Retranscribe API error: {str(e)}")
+        logger.error(f"Retranscribe API error: {str(e)}", exc_info=True)
         return Response({
             'success': False,
             'message': 'Internal server error',
-            'errors': {'general': [str(e)]}
+            'errors': {'general': ['An unexpected error occurred.']}
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
