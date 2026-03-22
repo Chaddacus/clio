@@ -620,17 +620,25 @@ The client wants to see progress on the frontend development and we should also 
 
 ## Rate Limiting
 
-- **Authentication endpoints**: 10 requests/minute
-- **File upload endpoints**: 5 requests/minute
-- **General API endpoints**: 100 requests/minute
-- **Transcription endpoint**: 10 requests/minute
-- **Retranscription endpoint**: 3 requests/minute
+DRF throttle classes enforce the following default limits:
+
+- **Anonymous requests**: 10 requests/minute
+- **Authenticated requests**: 60 requests/minute
+
+Nginx additionally rate-limits auth endpoints to 5 requests/second with burst=10.
+
+## Health Check
+
+`GET /api/health/` — No authentication required. Returns `{"status": "ok"}`.
 
 ## Security Considerations
 
-- HTTPS required in production
-- JWT tokens with short expiration times
-- File upload validation and size limits
+- HTTPS required in production (automatic redirect via nginx)
+- JWT tokens with 60-minute access lifetime, 7-day refresh lifetime
+- Refresh tokens are blacklisted after rotation
+- File upload validation and size limits (1KB min, 50MB max)
+- Transport security headers (HSTS, CSP, X-Frame-Options) when DEBUG=False
+- Error responses never expose internal exception details
 - CORS headers configured for specific origins
 - Rate limiting and request size limits
 - Input validation and sanitization
