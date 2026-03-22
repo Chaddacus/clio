@@ -166,7 +166,7 @@ class WhisperTranscriptionService:
             
             return {
                 'success': False,
-                'error': str(e),
+                'error': 'Transcription service encountered an error. Please try again.',
                 'transcription': '',
                 'language': 'auto',
                 'duration': None,

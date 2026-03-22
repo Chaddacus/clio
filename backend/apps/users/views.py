@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework import generics, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -6,6 +8,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from .models import UserProfile
 from .serializers import UserRegistrationSerializer, UserProfileSerializer, UserSerializer
+
+logger = logging.getLogger(__name__)
 
 
 class RegisterView(generics.CreateAPIView):
@@ -77,8 +81,8 @@ def logout_view(request):
             'message': 'Logged out successfully'
         }, status=status.HTTP_200_OK)
     except Exception as e:
+        logger.error(f"Logout error: {str(e)}", exc_info=True)
         return Response({
             'success': False,
             'message': 'Error logging out',
-            'errors': str(e)
         }, status=status.HTTP_400_BAD_REQUEST)
