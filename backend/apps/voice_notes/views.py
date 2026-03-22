@@ -2,6 +2,7 @@ import logging
 from datetime import timedelta
 
 from django.db import transaction
+from django.db.models import Sum
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, generics, serializers, status
 from rest_framework.decorators import api_view, permission_classes
@@ -225,13 +226,19 @@ class TagListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Tag.objects.all().order_by('name')
+        return Tag.objects.filter(
+            voice_notes__user=self.request.user
+        ).distinct().order_by('name')
 
 
 class TagDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = TagSerializer
     permission_classes = [IsAuthenticated]
-    queryset = Tag.objects.all()
+
+    def get_queryset(self):
+        return Tag.objects.filter(
+            voice_notes__user=self.request.user
+        ).distinct()
 
 
 @api_view(['POST'])
@@ -299,14 +306,21 @@ def retranscribe_voice_note(request, pk):
                 'message': 'Voice note not found'
             }, status=status.HTTP_404_NOT_FOUND)
 
+        # Validate language before proceeding
+        language = request.data.get('language', 'auto')
+        valid_languages = dict(VoiceNote.LANGUAGE_CHOICES)
+        if language not in valid_languages:
+            return Response({
+                'success': False,
+                'message': f'Invalid language. Must be one of: {", ".join(valid_languages.keys())}',
+                'errors': {'language': [f'Invalid language: {language}']}
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         if not note.audio_file:
             return Response({
                 'success': False,
                 'message': 'No audio file found for this note'
             }, status=status.HTTP_400_BAD_REQUEST)
-
-        # Get language from request data (default to auto)
-        language = request.data.get('language', 'auto')
 
         logger.info(f"Re-transcribing voice note {pk} for user {request.user} with language {language}")
 
@@ -316,7 +330,6 @@ def retranscribe_voice_note(request, pk):
         note.save()
 
         try:
-            # Use existing transcription service
             transcription_service = WhisperTranscriptionService()
             result = transcription_service.transcribe_audio(note.audio_file, language)
 
@@ -409,10 +422,9 @@ def user_stats(request):
         'processing_notes': voice_notes.filter(status='processing').count(),
         'failed_notes': voice_notes.filter(status='failed').count(),
         'favorite_notes': voice_notes.filter(is_favorite=True).count(),
-        'total_duration_seconds': sum([
-            (note.duration.total_seconds() if note.duration else 0)
-            for note in voice_notes
-        ]),
+        'total_duration_seconds': (
+            voice_notes.aggregate(total=Sum('duration'))['total'] or timedelta()
+        ).total_seconds(),
         'languages_used': list(voice_notes.values_list('language_detected', flat=True).distinct()),
     }
 
