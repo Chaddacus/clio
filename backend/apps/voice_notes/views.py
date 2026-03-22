@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from django_filters.rest_framework import DjangoFilterBackend
+from django.db import transaction
 from django.db.models import Q
 from datetime import timedelta
 from .models import VoiceNote, Tag, TranscriptionSegment
@@ -176,9 +177,10 @@ class VoiceNoteListCreateView(generics.ListCreateAPIView):
     
     def _update_user_storage(self, user, file_size_bytes):
         try:
-            profile = user.userprofile
-            profile.storage_used_mb += file_size_bytes / (1024 * 1024)
-            profile.save()
+            with transaction.atomic():
+                profile = UserProfile.objects.select_for_update().get(user=user)
+                profile.storage_used_mb += file_size_bytes / (1024 * 1024)
+                profile.save(update_fields=['storage_used_mb'])
         except UserProfile.DoesNotExist:
             pass
 
@@ -205,9 +207,10 @@ class VoiceNoteDetailView(generics.RetrieveUpdateDestroyAPIView):
     
     def _update_user_storage_on_delete(self, user, file_size_bytes):
         try:
-            profile = user.userprofile
-            profile.storage_used_mb = max(0, profile.storage_used_mb - (file_size_bytes / (1024 * 1024)))
-            profile.save()
+            with transaction.atomic():
+                profile = UserProfile.objects.select_for_update().get(user=user)
+                profile.storage_used_mb = max(0, profile.storage_used_mb - (file_size_bytes / (1024 * 1024)))
+                profile.save(update_fields=['storage_used_mb'])
         except UserProfile.DoesNotExist:
             pass
 
