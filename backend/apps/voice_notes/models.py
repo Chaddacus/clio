@@ -80,6 +80,10 @@ class VoiceNote(models.Model):
         ordering = ['-created_at']
         verbose_name = 'Voice Note'
         verbose_name_plural = 'Voice Notes'
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['user', 'status']),
+        ]
 
 
 class TranscriptionSegment(models.Model):
@@ -99,3 +103,6 @@ class TranscriptionSegment(models.Model):
 
     class Meta:
         ordering = ['start_time']
+        indexes = [
+            models.Index(fields=['voice_note', 'start_time']),
+        ]
