@@ -35,13 +35,13 @@ export const useAuthProvider = (): AuthContextType => {
     error: null,
   });
 
-  const setTokens = useCallback((tokens: AuthTokens) => {
-    localStorage.setItem('access_token', tokens.access);
+  const saveRefreshToken = useCallback((tokens: AuthTokens) => {
+    // Access token is now an httpOnly cookie (set by backend).
+    // Only store refresh token in localStorage for refresh flow.
     localStorage.setItem('refresh_token', tokens.refresh);
   }, []);
 
-  const clearTokens = useCallback(() => {
-    localStorage.removeItem('access_token');
+  const clearRefreshToken = useCallback(() => {
     localStorage.removeItem('refresh_token');
   }, []);
 
@@ -50,7 +50,7 @@ export const useAuthProvider = (): AuthContextType => {
       const response = await authAPI.getProfile();
       if (response.data.success && response.data.data) {
         const userData: User = {
-          id: 0, // Will be set from profile data
+          id: 0,
           username: response.data.data.username,
           email: response.data.data.email,
           first_name: response.data.data.first_name,
@@ -82,7 +82,8 @@ export const useAuthProvider = (): AuthContextType => {
       const response = await authAPI.login(data);
       const tokens = response.data;
 
-      setTokens(tokens);
+      // Access token cookie is set automatically by the backend response.
+      saveRefreshToken(tokens);
       await refreshProfile();
 
       toast.success('Successfully logged in!');
@@ -97,18 +98,18 @@ export const useAuthProvider = (): AuthContextType => {
       toast.error(errorMessage);
       return false;
     }
-  }, [setTokens, refreshProfile]);
+  }, [saveRefreshToken, refreshProfile]);
 
   const register = useCallback(async (data: RegisterData): Promise<boolean> => {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
       const response = await authAPI.register(data);
-      
+
       if (response.data.success && response.data.data) {
         const { user, tokens } = response.data.data;
-        setTokens(tokens);
-        
+        saveRefreshToken(tokens);
+
         setState(prev => ({
           ...prev,
           user,
@@ -132,7 +133,7 @@ export const useAuthProvider = (): AuthContextType => {
       toast.error(errorMessage);
       return false;
     }
-  }, [setTokens]);
+  }, [saveRefreshToken]);
 
   const logout = useCallback(async () => {
     try {
@@ -143,7 +144,7 @@ export const useAuthProvider = (): AuthContextType => {
     } catch (error) {
       console.error('Logout API call failed:', error);
     } finally {
-      clearTokens();
+      clearRefreshToken();
       setState({
         user: null,
         isAuthenticated: false,
@@ -152,31 +153,28 @@ export const useAuthProvider = (): AuthContextType => {
       });
       toast.success('Successfully logged out!');
     }
-  }, [clearTokens]);
+  }, [clearRefreshToken]);
 
-  // Check authentication status on mount
+  // Check authentication status on mount by trying to fetch profile.
+  // If the httpOnly cookie is present and valid, this will succeed.
   useEffect(() => {
     const checkAuthStatus = async () => {
-      const accessToken = localStorage.getItem('access_token');
-      
-      if (accessToken) {
-        try {
-          await refreshProfile();
-        } catch (error) {
-          clearTokens();
-          setState(prev => ({
-            ...prev,
-            isAuthenticated: false,
-            user: null,
-          }));
-        }
+      try {
+        await refreshProfile();
+      } catch (error) {
+        clearRefreshToken();
+        setState(prev => ({
+          ...prev,
+          isAuthenticated: false,
+          user: null,
+        }));
       }
-      
+
       setState(prev => ({ ...prev, isLoading: false }));
     };
 
     checkAuthStatus();
-  }, [refreshProfile, clearTokens]);
+  }, [refreshProfile, clearRefreshToken]);
 
   return {
     ...state,
