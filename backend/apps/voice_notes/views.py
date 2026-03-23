@@ -90,52 +90,16 @@ class VoiceNoteListCreateView(generics.ListCreateAPIView):
 
         voice_note = serializer.save()
 
-        try:
-            self._process_transcription(voice_note)
-            logger.info("Voice note %d created and transcribed", voice_note.id)
-            return Response({
-                'success': True,
-                'message': 'Voice note created successfully. Transcription in progress.',
-                'data': VoiceNoteDetailSerializer(voice_note, context={'request': request}).data,
-            }, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            logger.error("Transcription failed for note %d: %s", voice_note.id, e, exc_info=True)
-            voice_note.status = 'failed'
-            voice_note.error_message = str(e)
-            voice_note.save()
-            return Response({
-                'success': False,
-                'message': 'Voice note created but transcription failed',
-                'errors': {'transcription': ['Transcription service error. Please try again.']},
-                'data': VoiceNoteDetailSerializer(voice_note, context={'request': request}).data,
-            }, status=status.HTTP_201_CREATED)
+        # Dispatch transcription to Celery worker (non-blocking)
+        from .tasks import transcribe_voice_note_task
+        transcribe_voice_note_task.delay(voice_note.id)
 
-    def _process_transcription(self, voice_note: VoiceNote) -> None:
-        transcription_service = WhisperTranscriptionService()
-
-        duration = AudioProcessingService.get_audio_duration(voice_note.audio_file)
-        if duration:
-            voice_note.duration = timedelta(seconds=duration)
-
-        result = transcription_service.transcribe_audio(voice_note.audio_file)
-
-        if result['success']:
-            voice_note.transcription = result['text']
-            voice_note.language_detected = result['language']
-            voice_note.confidence_score = result['confidence_score']
-            voice_note.status = 'completed'
-
-            if not voice_note.title or voice_note.title == 'Untitled':
-                words = result['text'].split()[:8]
-                voice_note.title = ' '.join(words) + ('...' if len(words) == 8 else '')
-
-            create_segments_for_note(voice_note, result['segments'])
-        else:
-            voice_note.status = 'failed'
-            voice_note.error_message = result['error']
-
-        voice_note.save()
-        _update_storage(voice_note.user, voice_note.file_size_bytes)
+        logger.info("Voice note %d created, transcription dispatched", voice_note.id)
+        return Response({
+            'success': True,
+            'message': 'Voice note created. Transcription in progress.',
+            'data': VoiceNoteDetailSerializer(voice_note, context={'request': request}).data,
+        }, status=status.HTTP_202_ACCEPTED)
 
 
 class VoiceNoteDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -260,48 +224,16 @@ def retranscribe_voice_note(request, pk):
         note.error_message = ""
         note.save()
 
-        try:
-            transcription_service = WhisperTranscriptionService()
-            result = transcription_service.transcribe_audio(note.audio_file, language)
+        # Dispatch retranscription to Celery worker (non-blocking)
+        from .tasks import retranscribe_voice_note_task
+        retranscribe_voice_note_task.delay(note.id, language)
 
-            if result['success']:
-                with transaction.atomic():
-                    note.transcription = result['text']
-                    note.language_detected = result['language']
-                    note.confidence_score = result.get('confidence_score')
-                    note.status = 'completed'
-                    note.error_message = ""
-                    note.save()
-                    note.segments.all().delete()
-                    if result.get('segments'):
-                        create_segments_for_note(note, result['segments'])
-
-                logger.info("Re-transcribed voice note %d", pk)
-                return Response({
-                    'success': True,
-                    'message': 'Re-transcription completed successfully',
-                    'data': VoiceNoteDetailSerializer(note).data,
-                })
-
-            note.status = 'failed'
-            note.error_message = result.get('error', 'Re-transcription failed')
-            note.save()
-            return Response({
-                'success': False,
-                'message': 'Re-transcription failed',
-                'errors': {'transcription': [result.get('error', 'Unknown error')]},
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        except Exception as e:
-            note.status = 'failed'
-            note.error_message = str(e)
-            note.save()
-            logger.error("Re-transcription error for note %d: %s", pk, e, exc_info=True)
-            return Response({
-                'success': False,
-                'message': 'Internal re-transcription error',
-                'errors': {'transcription': ['An unexpected error occurred. Please try again.']},
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        logger.info("Re-transcription dispatched for note %d", pk)
+        return Response({
+            'success': True,
+            'message': 'Re-transcription in progress.',
+            'data': VoiceNoteDetailSerializer(note).data,
+        }, status=status.HTTP_202_ACCEPTED)
 
     except Exception as e:
         logger.error("Retranscribe API error: %s", e, exc_info=True)
