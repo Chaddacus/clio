@@ -67,7 +67,7 @@ jobs:
           python-version: '3.9'
       - run: pip install -r requirements.txt
       - run: python manage.py migrate
-      - run: pytest --cov=apps --cov-report=term-missing --cov-fail-under=40 -q
+      - run: pytest --cov=apps --cov-report=term-missing --cov-fail-under=60 -q
 
   frontend-lint:
     runs-on: ubuntu-latest
