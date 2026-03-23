@@ -44,7 +44,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     def get_storage_percentage(self, obj):
         if obj.storage_quota_mb == 0:
             return 0
-        return round((obj.storage_used_mb / obj.storage_quota_mb) * 100, 1)
+        return round(float(obj.storage_used_mb) / obj.storage_quota_mb * 100, 1)
 
 
 class UserSerializer(serializers.ModelSerializer):

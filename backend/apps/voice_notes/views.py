@@ -1,5 +1,6 @@
 import logging
 from datetime import timedelta
+from decimal import Decimal
 from typing import Any
 
 from django.db import transaction
@@ -49,7 +50,7 @@ def _update_storage(user: Any, delta_bytes: int) -> None:
     try:
         with transaction.atomic():
             profile = UserProfile.objects.select_for_update().get(user=user)
-            profile.storage_used_mb = max(0, profile.storage_used_mb + delta_bytes / (1024 * 1024))
+            profile.storage_used_mb = max(Decimal('0'), profile.storage_used_mb + Decimal(str(delta_bytes)) / Decimal('1048576'))
             profile.save(update_fields=['storage_used_mb'])
     except UserProfile.DoesNotExist:
         pass
@@ -265,9 +266,9 @@ def user_stats(request):
     try:
         profile = user.userprofile
         stats.update({
-            'storage_used_mb': profile.storage_used_mb,
+            'storage_used_mb': float(profile.storage_used_mb),
             'storage_quota_mb': profile.storage_quota_mb,
-            'storage_percentage': round((profile.storage_used_mb / profile.storage_quota_mb) * 100, 1),
+            'storage_percentage': round(float(profile.storage_used_mb) / profile.storage_quota_mb * 100, 1),
         })
     except UserProfile.DoesNotExist:
         stats.update({

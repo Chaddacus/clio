@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.core.validators import FileExtensionValidator
+from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
 from django.db import models
 
 
@@ -51,7 +51,11 @@ class VoiceNote(models.Model):
     duration = models.DurationField(null=True, blank=True)
     file_size_bytes = models.PositiveBigIntegerField(default=0)
     language_detected = models.CharField(max_length=10, choices=LANGUAGE_CHOICES, default='auto')
-    confidence_score = models.FloatField(null=True, blank=True, help_text="Transcription confidence (0.0-1.0)")
+    confidence_score = models.FloatField(
+        null=True, blank=True,
+        validators=[MinValueValidator(0.0), MaxValueValidator(1.0)],
+        help_text="Transcription confidence (0.0-1.0)",
+    )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='processing')
     error_message = models.TextField(blank=True)
     tags = models.ManyToManyField(Tag, blank=True, related_name='voice_notes')
@@ -67,7 +71,7 @@ class VoiceNote(models.Model):
         return round(self.file_size_bytes / (1024 * 1024), 2)
 
     def save(self, *args, **kwargs):
-        if self.audio_file and not self.file_size_bytes:
+        if self.audio_file and hasattr(self.audio_file, 'size'):
             self.file_size_bytes = self.audio_file.size
 
         if not self.title and self.transcription:
