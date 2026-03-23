@@ -4,6 +4,7 @@ import os
 import re
 import subprocess
 import tempfile
+import threading
 import time
 import wave
 from typing import Any, Optional
@@ -15,6 +16,38 @@ logger = logging.getLogger(__name__)
 
 MAX_RETRIES = 2
 RETRY_BACKOFF_SECONDS = 1
+
+
+class CircuitBreaker:
+    """Simple circuit breaker for external API calls."""
+    def __init__(self, threshold: int = 5, reset_timeout: float = 60.0):
+        self.threshold = threshold
+        self.reset_timeout = reset_timeout
+        self._failure_count = 0
+        self._last_failure_time: Optional[float] = None
+        self._lock = threading.Lock()
+
+    def record_failure(self) -> None:
+        with self._lock:
+            self._failure_count += 1
+            self._last_failure_time = time.time()
+
+    def record_success(self) -> None:
+        with self._lock:
+            self._failure_count = 0
+            self._last_failure_time = None
+
+    def is_open(self) -> bool:
+        with self._lock:
+            if self._failure_count < self.threshold:
+                return False
+            if self._last_failure_time and (time.time() - self._last_failure_time) > self.reset_timeout:
+                self._failure_count = 0
+                return False
+            return True
+
+
+_openai_circuit = CircuitBreaker()
 
 
 class WhisperTranscriptionService:
@@ -78,8 +111,8 @@ class WhisperTranscriptionService:
             if temp_file_path and os.path.exists(temp_file_path):
                 try:
                     os.unlink(temp_file_path)
-                except OSError:
-                    pass
+                except OSError as cleanup_err:
+                    logger.debug("Failed to remove temp file %s: %s", temp_file_path, cleanup_err)
             return {
                 'success': False,
                 'error': 'Transcription service encountered an error. Please try again.',
@@ -91,24 +124,29 @@ class WhisperTranscriptionService:
             }
 
     def _call_openai_with_retry(self, temp_file_path: str, language: str) -> Any:
+        if _openai_circuit.is_open():
+            raise RuntimeError("Circuit breaker open: OpenAI API unavailable")
         last_error: Optional[Exception] = None
         for attempt in range(MAX_RETRIES + 1):
             try:
                 with open(temp_file_path, 'rb') as audio:
                     if language == 'auto':
-                        return self.client.audio.transcriptions.create(
+                        result = self.client.audio.transcriptions.create(
                             model=self.model,
                             file=audio,
                             temperature=self.temperature,
                             response_format="verbose_json",
                         )
-                    return self.client.audio.transcriptions.create(
-                        model=self.model,
-                        file=audio,
-                        language=language,
-                        temperature=self.temperature,
-                        response_format="verbose_json",
-                    )
+                    else:
+                        result = self.client.audio.transcriptions.create(
+                            model=self.model,
+                            file=audio,
+                            language=language,
+                            temperature=self.temperature,
+                            response_format="verbose_json",
+                        )
+                _openai_circuit.record_success()
+                return result
             except Exception as e:
                 last_error = e
                 error_name = type(e).__name__
@@ -122,8 +160,10 @@ class WhisperTranscriptionService:
                     logger.warning("Transient error on attempt %d, retrying in %ds: %s", attempt + 1, wait, e)
                     time.sleep(wait)
                 else:
+                    _openai_circuit.record_failure()
                     raise
         if last_error is not None:
+            _openai_circuit.record_failure()
             raise last_error
         raise RuntimeError("Retry loop exited unexpectedly")
 
@@ -163,20 +203,20 @@ class AudioProcessingService:
                 if result.returncode == 0:
                     data = json.loads(result.stdout)
                     return float(data['format']['duration'])
-            except (subprocess.TimeoutExpired, KeyError, ValueError, json.JSONDecodeError):
-                pass
+            except (subprocess.TimeoutExpired, KeyError, ValueError, json.JSONDecodeError) as ffprobe_err:
+                logger.debug("ffprobe duration extraction failed, falling back to wave: %s", ffprobe_err)
 
             # Fallback: wave library for WAV files
             try:
                 with wave.open(temp_path, 'rb') as wav_file:
                     return wav_file.getnframes() / float(wav_file.getframerate())
-            except Exception:
-                pass
+            except Exception as wave_err:
+                logger.debug("wave duration extraction failed: %s", wave_err)
             finally:
                 try:
                     os.unlink(temp_path)
-                except OSError:
-                    pass
+                except OSError as cleanup_err:
+                    logger.debug("Failed to remove temp file %s: %s", temp_path, cleanup_err)
 
         except Exception as e:
             logger.error("Error getting audio duration: %s", e)
