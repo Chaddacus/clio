@@ -40,6 +40,7 @@ def create_segments_for_note(voice_note: VoiceNote, segments: list) -> None:
                 confidence=getattr(segment_data, 'avg_logprob', None),
             ))
         except Exception:
+            logger.warning("Skipping malformed segment", exc_info=True)
             continue
     if segment_objects:
         TranscriptionSegment.objects.bulk_create(segment_objects)
@@ -53,7 +54,7 @@ def _update_storage(user: Any, delta_bytes: int) -> None:
             profile.storage_used_mb = max(Decimal('0'), profile.storage_used_mb + Decimal(str(delta_bytes)) / Decimal('1048576'))
             profile.save(update_fields=['storage_used_mb'])
     except UserProfile.DoesNotExist:
-        pass
+        logger.warning("UserProfile not found for user %s", user.id)
 
 
 class VoiceNoteListCreateView(generics.ListCreateAPIView):
