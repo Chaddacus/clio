@@ -46,6 +46,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'apps.core.middleware.RequestIDMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -159,6 +160,7 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_CREDENTIALS = True
+CORS_EXPOSE_HEADERS = ['X-Request-ID']
 
 CORS_ALLOW_ALL_ORIGINS = False
 
@@ -210,16 +212,26 @@ if not DEBUG:
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'filters': {
+        'request_id': {
+            '()': 'apps.core.middleware.RequestIDFilter',
+        },
+    },
     'formatters': {
-        'verbose': {
-            'format': '{asctime} {levelname} {name} {message}',
+        'json': {
+            '()': 'pythonjsonlogger.jsonlogger.JsonFormatter',
+            'format': '%(asctime)s %(levelname)s %(name)s %(message)s %(request_id)s',
+        },
+        'console': {
+            'format': '{asctime} {levelname} {name} [{request_id}] {message}',
             'style': '{',
         },
     },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
+            'formatter': 'json' if not DEBUG else 'console',
+            'filters': ['request_id'],
         },
     },
     'root': {
