@@ -38,7 +38,6 @@ const Dashboard: React.FC = () => {
   );
 
   const handleNoteClick = (note: VoiceNoteListItem) => {
-    console.log('Note clicked, navigating to detail page:', note.id);
     navigate(`/notes/${note.id}`);
   };
 

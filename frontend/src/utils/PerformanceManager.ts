@@ -52,12 +52,6 @@ export class PerformanceManager {
     // Run a quick performance benchmark
     const performanceScore = await this.runPerformanceBenchmark();
     
-    console.log('[PerformanceManager] Device detection:', {
-      cpuCores,
-      memoryGB,
-      performanceScore
-    });
-
     // Determine performance tier based on capabilities
     let tier: DeviceCapability['tier'];
     let supportedFeatures: string[] = ['recording'];
@@ -86,9 +80,6 @@ export class PerformanceManager {
 
     // Set initial quality settings based on capability
     this.qualitySettings = this.getQualitySettingsForTier(tier);
-    
-    console.log('[PerformanceManager] Device capability detected:', this.deviceCapability);
-    console.log('[PerformanceManager] Initial quality settings:', this.qualitySettings);
   }
 
   /**
@@ -127,12 +118,6 @@ export class PerformanceManager {
         const cpuScore = Math.max(0, 100 - cpuTime);
         const canvasScore = Math.max(0, 100 - canvasTime);
         const combinedScore = Math.min(100, (cpuScore + canvasScore) / 2);
-        
-        console.log('[PerformanceManager] Benchmark results:', {
-          cpuTime: cpuTime.toFixed(2) + 'ms',
-          canvasTime: canvasTime.toFixed(2) + 'ms',
-          score: combinedScore.toFixed(1)
-        });
         
         resolve(combinedScore);
       } else {
@@ -478,7 +463,6 @@ export class PerformanceManager {
   }
 
   public forceQualityTier(tier: DeviceCapability['tier']): void {
-    console.log(`[PerformanceManager] Forcing quality tier to: ${tier}`);
     const newSettings = this.getQualitySettingsForTier(tier);
     this.updateQualitySettings(newSettings);
   }

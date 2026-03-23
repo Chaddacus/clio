@@ -148,18 +148,7 @@ const NoteDetailPage: React.FC = () => {
       {/* Audio Player */}
       {(() => {
         const audioUrl = getVoiceNoteAudioUrl(note);
-        
-        console.log('[NoteDetailPage] Note data received:', {
-          id: note.id,
-          title: note.title,
-          has_audio_url: !!note.audio_url,
-          audio_url: note.audio_url,
-          has_audio_file: !!note.audio_file,
-          audio_file: note.audio_file,
-          constructed_audio_url: audioUrl,
-          segments_count: note.segments?.length || 0
-        });
-        
+
         if (audioUrl) {
           // Convert duration string to seconds for AudioPlayer
           const durationSeconds = note.duration ? parseDurationToSeconds(note.duration) : undefined;
