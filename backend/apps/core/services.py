@@ -138,6 +138,11 @@ class WhisperTranscriptionService:
         return sum(confidences) / len(confidences) if confidences else None
 
 
+def get_transcription_service() -> WhisperTranscriptionService:
+    """Factory function for transcription service. Override in tests."""
+    return WhisperTranscriptionService()
+
+
 class AudioProcessingService:
     @staticmethod
     def get_audio_duration(audio_file: Any) -> Optional[float]:

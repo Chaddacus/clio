@@ -9,7 +9,8 @@ def audio_upload_path(instance, filename):
 
 
 class Tag(models.Model):
-    name = models.CharField(max_length=50, unique=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tags', null=True, blank=True)
+    name = models.CharField(max_length=50)
     color = models.CharField(max_length=7, default='#3B82F6')
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -18,6 +19,9 @@ class Tag(models.Model):
 
     class Meta:
         ordering = ['name']
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'name'], name='unique_tag_per_user'),
+        ]
 
 
 class VoiceNote(models.Model):

@@ -3,7 +3,7 @@ from datetime import timedelta
 
 from celery import shared_task
 
-from apps.core.services import AudioProcessingService, WhisperTranscriptionService
+from apps.core.services import AudioProcessingService, get_transcription_service
 
 from .models import VoiceNote
 from .views import _update_storage, create_segments_for_note
@@ -21,7 +21,7 @@ def transcribe_voice_note_task(self, note_id: int, language: str = 'auto') -> No
         return
 
     try:
-        transcription_service = WhisperTranscriptionService()
+        transcription_service = get_transcription_service()
 
         duration = AudioProcessingService.get_audio_duration(note.audio_file)
         if duration:
@@ -68,7 +68,7 @@ def retranscribe_voice_note_task(self, note_id: int, language: str = 'auto') -> 
     try:
         from django.db import transaction
 
-        transcription_service = WhisperTranscriptionService()
+        transcription_service = get_transcription_service()
         result = transcription_service.transcribe_audio(note.audio_file, language)
 
         if result['success']:
