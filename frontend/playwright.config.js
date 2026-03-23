@@ -25,9 +25,9 @@ module.exports = defineConfig({
     },
   ],
   webServer: {
-    command: 'docker-compose up frontend backend db',
+    command: 'docker compose up',
     url: 'http://localhost:3011',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
+    reuseExistingServer: true,
+    timeout: 180 * 1000,
   },
 });

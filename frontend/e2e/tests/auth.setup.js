@@ -26,6 +26,6 @@ setup('authenticate', async ({ page, request }) => {
   await page.waitForURL('**/dashboard', { timeout: 10000 });
   await expect(page).toHaveURL(/dashboard/);
 
-  // Save authentication state (localStorage tokens)
+  // Save authentication state (httpOnly cookies)
   await page.context().storageState({ path: authFile });
 });
