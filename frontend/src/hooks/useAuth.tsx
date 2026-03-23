@@ -57,10 +57,11 @@ export const useAuthProvider = (): AuthContextType => {
         }));
       }
     } catch (error) {
-      console.error('Failed to refresh profile:', error);
+      // Silently handle — this is expected when not authenticated
       setState(prev => ({
         ...prev,
-        error: 'Failed to load profile',
+        isAuthenticated: false,
+        user: null,
       }));
     }
   }, []);

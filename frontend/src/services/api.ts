@@ -26,12 +26,20 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
+      // Don't attempt refresh if we're already on the login/register page
+      if (window.location.pathname === '/login' || window.location.pathname === '/register') {
+        return Promise.reject(error);
+      }
+
       try {
         // Refresh token is sent via httpOnly cookie automatically
         await api.post('/auth/refresh/');
         return api(originalRequest);
       } catch (refreshError) {
-        window.location.href = '/login';
+        // Only redirect if not already on login
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
       }
     }
 
