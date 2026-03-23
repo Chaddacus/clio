@@ -53,8 +53,7 @@ const MicrophonePermission: React.FC<MicrophonePermissionProps> = ({
         setPermissionState('prompt');
         onPermissionChange(false);
       }
-    } catch (error) {
-      console.warn('Permission API not available:', error);
+    } catch (_error) {
       setPermissionState('prompt');
       onPermissionChange(false);
     }

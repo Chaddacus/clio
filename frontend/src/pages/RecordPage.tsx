@@ -17,21 +17,12 @@ const RecordPage: React.FC = () => {
 
   const createNoteMutation = useMutation(
     (data: { audio_file: File; title?: string }) => {
-      console.log('[RecordPage] Starting API call to voiceNotesAPI.create');
       return voiceNotesAPI.create(data);
     },
     {
       onSuccess: (response) => {
-        console.log('[RecordPage] Mutation success:', {
-          status: response.status,
-          success: response.data.success,
-          data: response.data.data,
-          message: response.data.message
-        });
-        
         if (response.data.success) {
           toast.success('Voice note created successfully! Transcription in progress.');
-          console.log('[RecordPage] Navigating to note detail:', response.data.data?.id);
           navigate(`/notes/${response.data.data?.id}`);
         } else {
           console.error('[RecordPage] API returned success=false:', response.data);
@@ -52,11 +43,6 @@ const RecordPage: React.FC = () => {
   );
 
   const handleRecordingComplete = (blob: Blob) => {
-    console.log('[RecordPage] Recording completed:', {
-      blobSize: blob.size,
-      blobType: blob.type,
-      timestamp: new Date().toISOString()
-    });
     setAudioBlob(blob);
     setIsRecording(false);
   };
@@ -71,38 +57,15 @@ const RecordPage: React.FC = () => {
   };
 
   const handleSave = async () => {
-    console.log('[RecordPage] Save initiated');
-    
     if (!audioBlob) {
-      console.error('[RecordPage] No audioBlob available for save');
       toast.error('No recording to save');
       return;
     }
 
     const finalTitle = title.trim() || `Recording ${new Date().toLocaleString()}`;
-    
-    console.log('[RecordPage] Creating File object:', {
-      blobSize: audioBlob.size,
-      blobType: audioBlob.type,
-      title: finalTitle
-    });
 
     const audioFile = new File([audioBlob], `recording-${Date.now()}.webm`, {
       type: audioBlob.type,
-    });
-
-    console.log('[RecordPage] File created:', {
-      fileName: audioFile.name,
-      fileSize: audioFile.size,
-      fileType: audioFile.type,
-      lastModified: audioFile.lastModified
-    });
-
-    console.log('[RecordPage] Calling mutation with data:', {
-      audio_file_name: audioFile.name,
-      audio_file_size: audioFile.size,
-      audio_file_type: audioFile.type,
-      title: finalTitle
     });
 
     createNoteMutation.mutate({

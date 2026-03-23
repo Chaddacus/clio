@@ -87,12 +87,6 @@ const WaveformDisplay: React.FC<WaveformDisplayProps> = ({
         const newBarHeight = Math.min(1.0, baseLevel + randomVariation);
         barsRef.current[barCount - 1] = newBarHeight;
         
-        // Performance-aware debug logging
-        if (shouldEnableOptimizations && 
-            performanceManager.qualitySettings?.enableDebugLogging && 
-            Math.random() < 0.005) { // Reduced frequency
-          console.log(`Waveform update: audioLevel=${(audioLevel * 100).toFixed(1)}%, barHeight=${(newBarHeight * 100).toFixed(1)}%, fps=${targetFPS}`);
-        }
       } else if (!isRecording || isPaused) {
         // Gradually fade out bars when not recording
         for (let i = 0; i < barCount; i++) {

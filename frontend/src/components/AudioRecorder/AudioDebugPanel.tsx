@@ -63,16 +63,14 @@ const AudioDebugPanel: React.FC<AudioDebugPanelProps> = ({
     if (isRecording && !isPaused) {
       try {
         recognition.start();
-        console.log('Speech recognition started');
       } catch (error) {
-        console.log('Speech recognition already running or failed to start');
+        // Speech recognition already running or failed to start
       }
     } else {
       try {
         recognition.stop();
-        console.log('Speech recognition stopped');
       } catch (error) {
-        console.log('Speech recognition was not running');
+        // Speech recognition was not running
       }
     }
 

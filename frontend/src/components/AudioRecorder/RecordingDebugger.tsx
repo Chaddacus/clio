@@ -17,7 +17,6 @@ const RecordingDebugger: React.FC<RecordingDebuggerProps> = ({ onComplete }) => 
   const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
     setLogs(prev => [...prev, `${timestamp}: ${message}`]);
-    console.log(`[RecordingDebugger] ${message}`);
   };
 
   const checkPermissions = async () => {

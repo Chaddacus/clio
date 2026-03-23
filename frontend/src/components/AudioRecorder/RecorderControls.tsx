@@ -60,17 +60,13 @@ const RecorderControls: React.FC<RecorderControlsProps> = ({
   }, [recorder.checkMicrophonePermission]);
 
   const handleStartRecording = async () => {
-    console.log('[RecorderControls] Start recording clicked');
     try {
       // First check if permission is already granted
-      console.log('[RecorderControls] Checking microphone permission...');
       const permission = await recorder.checkMicrophonePermission();
-      console.log('[RecorderControls] Permission result:', permission);
       setHasPermission(permission);
-      
+
       if (!permission) {
         // Show user-friendly message about granting permission
-        console.log('[RecorderControls] Requesting microphone access...');
         toast('Requesting microphone access...', {
           icon: '🎤',
           duration: 2000,
@@ -78,13 +74,10 @@ const RecorderControls: React.FC<RecorderControlsProps> = ({
       }
 
       // Always try to start recording - the hook will handle permission requests
-      console.log('[RecorderControls] Calling recorder.startRecording()...');
       await recorder.startRecording();
-      console.log('[RecorderControls] recorder.startRecording() completed successfully');
       setHasPermission(true); // If we get here, permission was granted
       onRecordingStart?.();
       toast.success('Recording started');
-      console.log('[RecorderControls] Recording start process completed');
     } catch (error) {
       console.error('[RecorderControls] Start recording error:', error);
       toast.error(`Failed to start recording: ${(error as Error).message}`);
@@ -150,18 +143,7 @@ const RecorderControls: React.FC<RecorderControlsProps> = ({
           {getRecordingStatusText()}
         </div>
         <div className="text-3xl font-mono text-gray-700 dark:text-gray-300" data-testid="recording-time">
-          {(() => {
-            const formattedTime = recorder.formatTime(recorder.recordingTime);
-            // Always log to debug timer display issues
-            console.log('[RecorderControls] Timer display render:', {
-              recordingTime: recorder.recordingTime,
-              formattedTime,
-              isRecording: recorder.isRecording,
-              isPaused: recorder.isPaused,
-              timestamp: Date.now()
-            });
-            return formattedTime;
-          })()}
+          {recorder.formatTime(recorder.recordingTime)}
         </div>
       </div>
 
