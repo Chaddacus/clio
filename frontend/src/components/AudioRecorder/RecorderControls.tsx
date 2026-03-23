@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  MicrophoneIcon, 
-  StopIcon, 
-  PlayIcon, 
+import {
+  MicrophoneIcon,
+  StopIcon,
+  PlayIcon,
   PauseIcon,
-  ExclamationTriangleIcon 
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import { useAudioRecorder } from '../../hooks/useAudioRecorder';
 import WaveformDisplay from './WaveformDisplay';
@@ -101,12 +101,12 @@ const RecorderControls: React.FC<RecorderControlsProps> = ({
 
   const getRecordingStatusColor = () => {
     if (recorder.isRecording && !recorder.isPaused) {
-      return 'text-red-500 animate-pulse';
+      return 'text-primary animate-pulse';
     }
     if (recorder.isPaused) {
-      return 'text-yellow-500';
+      return 'text-secondary';
     }
-    return 'text-gray-400';
+    return 'text-on-surface-variant';
   };
 
   const getRecordingStatusText = () => {
@@ -120,16 +120,16 @@ const RecorderControls: React.FC<RecorderControlsProps> = ({
   };
 
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 ${className}`}>
+    <div className={`bg-surface-container-low rounded-lg p-6 ${className}`}>
       {/* Permission Warning */}
       {hasPermission === false && (
-        <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg">
+        <div className="mb-4 p-4 bg-surface-container-high rounded-lg">
           <div className="flex items-center">
-            <ExclamationTriangleIcon className="h-5 w-5 text-yellow-400 mr-2" />
-            <div className="text-sm text-yellow-800 dark:text-yellow-200">
+            <ExclamationTriangleIcon className="h-5 w-5 text-secondary mr-2" />
+            <div className="text-sm text-on-surface">
               <p className="font-medium mb-1">Microphone permission required</p>
-              <p className="text-xs">
-                Click the microphone icon in your browser's address bar and select "Allow", 
+              <p className="text-xs text-on-surface-variant">
+                Click the microphone icon in your browser's address bar and select "Allow",
                 or click "Start Recording" to be prompted for permission.
               </p>
             </div>
@@ -139,10 +139,10 @@ const RecorderControls: React.FC<RecorderControlsProps> = ({
 
       {/* Recording Status */}
       <div className="text-center mb-6">
-        <div className={`text-lg font-semibold mb-2 ${getRecordingStatusColor()}`} data-testid="recording-status">
+        <div className={`font-editorial text-xl font-light mb-2 ${getRecordingStatusColor()}`} data-testid="recording-status">
           {getRecordingStatusText()}
         </div>
-        <div className="text-3xl font-mono text-gray-700 dark:text-gray-300" data-testid="recording-time">
+        <div className="font-editorial text-5xl font-light text-on-surface" data-testid="recording-time">
           {recorder.formatTime(recorder.recordingTime)}
         </div>
       </div>
@@ -150,7 +150,7 @@ const RecorderControls: React.FC<RecorderControlsProps> = ({
       {/* Waveform Display */}
       {recorder.isRecording && (
         <div className="mb-6">
-          <WaveformDisplay 
+          <WaveformDisplay
             audioLevel={recorder.audioLevel}
             isRecording={recorder.isRecording}
             isPaused={recorder.isPaused}
@@ -161,13 +161,13 @@ const RecorderControls: React.FC<RecorderControlsProps> = ({
       {/* Audio Level Indicator */}
       {recorder.isRecording && !recorder.isPaused && (
         <div className="mb-6">
-          <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
+          <div className="flex items-center justify-between text-xs text-on-surface-variant uppercase tracking-wider mb-2">
             <span>Audio Level</span>
             <span>{Math.round(recorder.audioLevel * 100)}%</span>
           </div>
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-            <div 
-              className="bg-primary-500 h-2 rounded-full transition-all duration-100 ease-out"
+          <div className="w-full bg-surface-container-lowest rounded-full h-1.5">
+            <div
+              className="bg-gradient-to-r from-primary to-primary-container h-1.5 rounded-full transition-all duration-100 ease-out"
               style={{ width: `${recorder.audioLevel * 100}%` }}
             />
           </div>
@@ -190,10 +190,10 @@ const RecorderControls: React.FC<RecorderControlsProps> = ({
           <button
             onClick={handleStartRecording}
             disabled={disabled}
-            className="flex items-center justify-center w-16 h-16 bg-red-500 hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full shadow-lg transition-colors duration-200"
+            className="flex items-center justify-center w-24 h-24 bg-gradient-to-br from-primary to-primary-container hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed text-surface rounded-full transition-opacity duration-200 btn-record-glow"
             title={disabled ? "Allow microphone access to start recording" : "Start Recording"}
           >
-            <MicrophoneIcon className="h-8 w-8" />
+            <MicrophoneIcon className="h-10 w-10" />
           </button>
         ) : (
           <>
@@ -201,7 +201,7 @@ const RecorderControls: React.FC<RecorderControlsProps> = ({
               <button
                 onClick={handlePauseRecording}
                 disabled={disabled}
-                className="flex items-center justify-center w-12 h-12 bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full shadow-lg transition-colors duration-200"
+                className="flex items-center justify-center w-12 h-12 bg-surface-container-high/80 backdrop-blur-xl hover:bg-surface-container-highest disabled:opacity-40 disabled:cursor-not-allowed text-on-surface rounded-full transition-colors duration-200"
                 title="Pause Recording"
               >
                 <PauseIcon className="h-6 w-6" />
@@ -210,17 +210,17 @@ const RecorderControls: React.FC<RecorderControlsProps> = ({
               <button
                 onClick={handleResumeRecording}
                 disabled={disabled}
-                className="flex items-center justify-center w-12 h-12 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full shadow-lg transition-colors duration-200"
+                className="flex items-center justify-center w-12 h-12 bg-surface-container-high/80 backdrop-blur-xl hover:bg-surface-container-highest disabled:opacity-40 disabled:cursor-not-allowed text-secondary rounded-full transition-colors duration-200"
                 title="Resume Recording"
               >
                 <PlayIcon className="h-6 w-6" />
               </button>
             )}
-            
+
             <button
               onClick={handleStopRecording}
               disabled={disabled}
-              className="flex items-center justify-center w-16 h-16 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full shadow-lg transition-colors duration-200"
+              className="flex items-center justify-center w-16 h-16 bg-surface-container-high/80 backdrop-blur-xl hover:bg-surface-container-highest disabled:opacity-40 disabled:cursor-not-allowed text-on-surface rounded-full transition-colors duration-200"
               title="Stop Recording"
             >
               <StopIcon className="h-8 w-8" />
@@ -231,21 +231,21 @@ const RecorderControls: React.FC<RecorderControlsProps> = ({
 
       {/* Recording tips and quality info */}
       <div className="mt-6 text-center space-y-2">
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          {recorder.isRecording 
-            ? 'Speak clearly into your microphone' 
-            : disabled 
+        <p className="text-xs text-on-surface-variant">
+          {recorder.isRecording
+            ? 'Speak clearly into your microphone'
+            : disabled
               ? 'Allow microphone access above to enable recording'
               : 'Click the microphone button to start recording'
           }
         </p>
-        
+
         {/* Quality indicator */}
         <div className="flex items-center justify-center space-x-2 text-xs">
-          <span className="text-gray-400">Quality:</span>
-          <span className={`font-medium ${
-            recorder.getPerformanceStatus() === 'good' ? 'text-green-600' :
-            recorder.getPerformanceStatus() === 'moderate' ? 'text-yellow-600' : 'text-red-600'
+          <span className="text-on-surface-variant uppercase tracking-wider">Quality:</span>
+          <span className={`font-medium uppercase tracking-wider ${
+            recorder.getPerformanceStatus() === 'good' ? 'text-secondary' :
+            recorder.getPerformanceStatus() === 'moderate' ? 'text-primary' : 'text-error'
           }`}>
             {recorder.getQualityDescription()}
           </span>

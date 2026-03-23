@@ -20,7 +20,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "6380:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -29,6 +29,8 @@ services:
 
   backend:
     build: ./backend
+    stdin_open: true
+    tty: true
     environment:
       - DEBUG=True
       - SECRET_KEY=your-secret-key-here
@@ -40,6 +42,7 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ALLOWED_HOSTS=localhost,127.0.0.1,backend
       - REDIS_URL=redis://redis:6379/0
+      - PYTHONDONTWRITEBYTECODE=1
     volumes:
       - ./backend:/app
       - media_files:/app/media
@@ -82,6 +85,8 @@ services:
 
   celery:
     build: ./backend
+    stdin_open: true
+    tty: true
     command: celery -A config worker -l info
     environment:
       - DEBUG=True
@@ -109,4 +114,3 @@ volumes:
 networks:
   default:
     driver: bridge
-    

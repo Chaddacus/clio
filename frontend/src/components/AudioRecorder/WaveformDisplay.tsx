@@ -66,7 +66,7 @@ const WaveformDisplay: React.FC<WaveformDisplayProps> = ({
       const isHighPerformance = !shouldEnableOptimizations || performanceStatus === 'good';
       
       // Clear canvas
-      ctx.fillStyle = '#1f2937'; // gray-800
+      ctx.fillStyle = '#0e0e0d'; // surface-container-lowest
       ctx.fillRect(0, 0, width, canvasHeight);
 
       const barWidth = width / barCount;
@@ -105,17 +105,17 @@ const WaveformDisplay: React.FC<WaveformDisplayProps> = ({
         let color;
         
         if (isPaused) {
-          color = `rgba(251, 191, 36, ${intensity})`; // yellow
+          color = `rgba(255, 226, 171, ${intensity})`; // secondary (#ffe2ab)
         } else if (isRecording) {
           if (intensity > 0.7) {
-            color = `rgba(239, 68, 68, ${intensity})`; // red
+            color = `rgba(255, 127, 80, ${intensity})`; // primary-container (#ff7f50)
           } else if (intensity > 0.4) {
-            color = `rgba(251, 191, 36, ${intensity})`; // yellow
+            color = `rgba(255, 181, 156, ${intensity})`; // primary (#ffb59c)
           } else {
-            color = `rgba(34, 197, 94, ${intensity})`; // green
+            color = `rgba(255, 226, 171, ${intensity})`; // secondary (#ffe2ab)
           }
         } else {
-          color = `rgba(107, 114, 128, ${intensity})`; // gray
+          color = `rgba(166, 139, 130, ${intensity})`; // outline (#a68b82)
         }
 
         ctx.fillStyle = color;

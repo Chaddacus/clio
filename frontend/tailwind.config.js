@@ -8,27 +8,45 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        surface: {
+          DEFAULT: '#131312',
+          dim: '#131312',
+          bright: '#393938',
+          container: {
+            lowest: '#0e0e0d',
+            low: '#1c1c1b',
+            DEFAULT: '#20201f',
+            high: '#2a2a29',
+            highest: '#353533',
+          },
+          variant: '#353533',
+          tint: '#ffb59c',
+        },
+        'on-surface': {
+          DEFAULT: '#e5e2e0',
+          variant: '#dec0b6',
+        },
         primary: {
-          50: '#eff6ff',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
+          DEFAULT: '#ffb59c',
+          container: '#ff7f50',
+          fixed: { DEFAULT: '#ffdbcf', dim: '#ffb59c' },
         },
-        success: {
-          50: '#f0fdf4',
-          500: '#22c55e',
-          600: '#16a34a',
+        secondary: {
+          DEFAULT: '#ffe2ab',
+          container: '#ffbf00',
         },
-        warning: {
-          50: '#fffbeb',
-          500: '#f59e0b',
-          600: '#d97706',
+        tertiary: {
+          DEFAULT: '#c7c6c4',
+          container: '#a4a4a2',
         },
-        danger: {
-          50: '#fef2f2',
-          500: '#ef4444',
-          600: '#dc2626',
-        }
+        'on-tertiary': '#303130',
+        outline: { DEFAULT: '#a68b82', variant: '#57423b' },
+        error: { DEFAULT: '#ffb4ab', container: '#93000a' },
+        'on-error': '#690005',
+      },
+      fontFamily: {
+        editorial: ['Newsreader', 'Georgia', 'serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
       },
       animation: {
         'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',

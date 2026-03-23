@@ -21,23 +21,23 @@ import { getAudioFileUrl } from '../../utils/audioUtils';
 const parseDurationToSeconds = (duration: string): number => {
   // Duration format can be "HH:MM:SS", "MM:SS", or just seconds
   // Examples: "00:13:08.123456", "13:08", "788.123456"
-  
+
   // Handle decimal seconds format (like "788.123456")
   if (!duration.includes(':')) {
     return parseFloat(duration);
   }
-  
+
   // Handle time format (like "00:13:08" or "13:08")
   const parts = duration.split(':').map(part => parseFloat(part.split('.')[0])); // Remove microseconds
-  
+
   if (parts.length === 2) {
     // MM:SS format
     return parts[0] * 60 + parts[1];
   } else if (parts.length === 3) {
-    // HH:MM:SS format  
+    // HH:MM:SS format
     return parts[0] * 3600 + parts[1] * 60 + parts[2];
   }
-  
+
   return 0; // Fallback
 };
 
@@ -68,10 +68,10 @@ const NotesGrid: React.FC<NotesGridProps> = ({
 
   const handleDeleteClick = async (e: React.MouseEvent, noteId: number) => {
     e.stopPropagation();
-    
+
     if (window.confirm('Are you sure you want to delete this note?')) {
       setDeletingIds(prev => new Set(prev.add(noteId)));
-      
+
       try {
         await onDeleteNote?.(noteId);
       } finally {
@@ -100,11 +100,11 @@ const NotesGrid: React.FC<NotesGridProps> = ({
   const getStatusIcon = (status: VoiceNoteListItem['status']) => {
     switch (status) {
       case 'completed':
-        return <CheckCircleIcon className="h-4 w-4 text-green-500" />;
+        return <CheckCircleIcon className="h-4 w-4 text-secondary" />;
       case 'processing':
-        return <ArrowPathIcon className="h-4 w-4 text-blue-500 animate-spin" />;
+        return <ArrowPathIcon className="h-4 w-4 text-primary animate-spin" />;
       case 'failed':
-        return <ExclamationTriangleIcon className="h-4 w-4 text-red-500" />;
+        return <ExclamationTriangleIcon className="h-4 w-4 text-error" />;
       default:
         return null;
     }
@@ -123,9 +123,22 @@ const NotesGrid: React.FC<NotesGridProps> = ({
     }
   };
 
+  const getStatusTextClass = (status: VoiceNoteListItem['status']) => {
+    switch (status) {
+      case 'completed':
+        return 'text-secondary';
+      case 'processing':
+        return 'text-primary animate-pulse';
+      case 'failed':
+        return 'text-error';
+      default:
+        return 'text-on-surface-variant';
+    }
+  };
+
   const formatDuration = (durationStr: string | null): string => {
     if (!durationStr) return '0:00';
-    
+
     try {
       // Parse duration string (format: "HH:MM:SS" or "MM:SS")
       const parts = durationStr.split(':').map(Number);
@@ -148,13 +161,13 @@ const NotesGrid: React.FC<NotesGridProps> = ({
         {Array.from({ length: 6 }).map((_, index) => (
           <div
             key={index}
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 animate-pulse"
+            className="bg-surface-container-low rounded-lg p-4 animate-pulse"
           >
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2" />
-            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-4" />
+            <div className="h-4 bg-surface-container-high rounded mb-2" />
+            <div className="h-3 bg-surface-container-high rounded w-3/4 mb-4" />
             <div className="flex items-center space-x-4 text-sm">
-              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16" />
-              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-12" />
+              <div className="h-3 bg-surface-container-high rounded w-16" />
+              <div className="h-3 bg-surface-container-high rounded w-12" />
             </div>
           </div>
         ))}
@@ -165,11 +178,11 @@ const NotesGrid: React.FC<NotesGridProps> = ({
   if (notes.length === 0) {
     return (
       <div className={`text-center py-12 ${className}`}>
-        <MicrophoneIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300 mb-2">
+        <MicrophoneIcon className="h-12 w-12 text-on-surface-variant/30 mx-auto mb-4" />
+        <h3 className="font-editorial text-xl font-light text-on-surface mb-2">
           No voice notes yet
         </h3>
-        <p className="text-gray-500 dark:text-gray-400">
+        <p className="text-on-surface-variant text-sm">
           Start recording your first voice note to get started
         </p>
       </div>
@@ -182,24 +195,24 @@ const NotesGrid: React.FC<NotesGridProps> = ({
         <div
           key={note.id}
           onClick={() => onNoteClick?.(note)}
-          className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 cursor-pointer border border-gray-200 dark:border-gray-700 ${
+          className={`bg-surface-container-low rounded-lg hover:bg-surface-container-high transition-colors duration-200 cursor-pointer ${
             deletingIds.has(note.id) ? 'opacity-50 pointer-events-none' : ''
           }`}
         >
           {/* Header */}
           <div className="p-4 pb-2">
             <div className="flex items-start justify-between mb-2">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white line-clamp-2 flex-1 mr-2">
+              <h3 className="font-editorial text-lg font-light text-on-surface line-clamp-2 flex-1 mr-2">
                 {note.title || 'Untitled Note'}
               </h3>
               <button
                 onClick={(e) => handleFavoriteClick(e, note)}
-                className="flex-shrink-0 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="flex-shrink-0 p-1 rounded-full hover:bg-surface-container-highest transition-colors"
               >
                 {note.is_favorite ? (
-                  <HeartSolidIcon className="h-5 w-5 text-red-500" />
+                  <HeartSolidIcon className="h-5 w-5 text-primary" />
                 ) : (
-                  <HeartIcon className="h-5 w-5 text-gray-400" />
+                  <HeartIcon className="h-5 w-5 text-on-surface-variant/50" />
                 )}
               </button>
             </div>
@@ -207,11 +220,7 @@ const NotesGrid: React.FC<NotesGridProps> = ({
             {/* Status */}
             <div className="flex items-center space-x-1 mb-3">
               {getStatusIcon(note.status)}
-              <span className={`text-sm ${
-                note.status === 'completed' ? 'text-green-600 dark:text-green-400' :
-                note.status === 'processing' ? 'text-blue-600 dark:text-blue-400' :
-                'text-red-600 dark:text-red-400'
-              }`}>
+              <span className={`text-xs font-medium uppercase tracking-wider ${getStatusTextClass(note.status)}`}>
                 {getStatusText(note.status)}
               </span>
             </div>
@@ -222,20 +231,14 @@ const NotesGrid: React.FC<NotesGridProps> = ({
                 {note.tags.slice(0, 3).map((tag) => (
                   <span
                     key={tag.id}
-                    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
-                    style={{
-                      backgroundColor: `${tag.color}20`,
-                      color: tag.color,
-                      borderColor: tag.color,
-                      borderWidth: '1px',
-                    }}
+                    className="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-tertiary-container text-on-tertiary"
                   >
                     <TagIcon className="h-3 w-3 mr-1" />
                     {tag.name}
                   </span>
                 ))}
                 {note.tags.length > 3 && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-surface-container-highest text-on-surface-variant">
                     +{note.tags.length - 3} more
                   </span>
                 )}
@@ -264,14 +267,14 @@ const NotesGrid: React.FC<NotesGridProps> = ({
 
           {/* Transcription Section */}
           {note.transcription_text && (
-            <div className="px-4 pb-3 border-t border-gray-100 dark:border-gray-700 pt-3">
+            <div className="px-4 pb-3 pt-3">
               <div className="flex items-center justify-between mb-2">
-                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <h4 className="text-xs font-medium text-on-surface-variant uppercase tracking-wider">
                   Transcription
                 </h4>
                 <button
                   onClick={(e) => toggleTranscriptionExpanded(e, note.id)}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  className="text-on-surface-variant hover:text-on-surface"
                   data-testid="transcription-toggle"
                 >
                   {expandedTranscriptions.has(note.id) ? (
@@ -281,20 +284,20 @@ const NotesGrid: React.FC<NotesGridProps> = ({
                   )}
                 </button>
               </div>
-              
-              <div 
-                className={`text-sm text-gray-600 dark:text-gray-400 transition-all duration-200 ${
-                  expandedTranscriptions.has(note.id) 
-                    ? '' 
+
+              <div
+                className={`text-sm text-on-surface-variant font-sans leading-relaxed transition-all duration-200 ${
+                  expandedTranscriptions.has(note.id)
+                    ? ''
                     : 'line-clamp-3'
                 }`}
                 data-testid="transcription-text"
               >
                 {note.transcription_text}
               </div>
-              
+
               {note.transcription_confidence && (
-                <div className="mt-2 text-xs text-gray-500">
+                <div className="mt-2 text-xs text-on-surface-variant/50 uppercase tracking-wider">
                   Confidence: {Math.round(note.transcription_confidence * 100)}%
                 </div>
               )}
@@ -303,22 +306,22 @@ const NotesGrid: React.FC<NotesGridProps> = ({
 
           {/* Footer */}
           <div className="px-4 pb-4">
-            <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-              <div className="flex items-center space-x-4">
+            <div className="flex items-center justify-between text-xs text-on-surface-variant uppercase tracking-wider">
+              <div className="flex items-center space-x-3">
                 {note.duration && (
                   <div className="flex items-center space-x-1">
-                    <ClockIcon className="h-4 w-4" />
+                    <ClockIcon className="h-3.5 w-3.5" />
                     <span>{formatDuration(note.duration)}</span>
                   </div>
                 )}
-                
+
                 <div className="flex items-center space-x-1">
-                  <DocumentTextIcon className="h-4 w-4" />
+                  <DocumentTextIcon className="h-3.5 w-3.5" />
                   <span>{Math.round(note.file_size_mb * 10) / 10}MB</span>
                 </div>
-                
+
                 {note.language_detected && note.language_detected !== 'auto' && (
-                  <span className="uppercase text-xs font-medium px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded">
+                  <span className="bg-surface-container-highest px-1.5 py-0.5 rounded-sm">
                     {note.language_detected}
                   </span>
                 )}
@@ -328,7 +331,7 @@ const NotesGrid: React.FC<NotesGridProps> = ({
               <button
                 onClick={(e) => handleDeleteClick(e, note.id)}
                 disabled={deletingIds.has(note.id)}
-                className="text-gray-400 hover:text-red-500 transition-colors p-1 rounded"
+                className="text-on-surface-variant/50 hover:text-error transition-colors p-1 rounded"
                 title="Delete note"
               >
                 {deletingIds.has(note.id) ? (
@@ -339,7 +342,7 @@ const NotesGrid: React.FC<NotesGridProps> = ({
               </button>
             </div>
 
-            <div className="mt-2 text-xs text-gray-400 dark:text-gray-500">
+            <div className="mt-2 text-xs text-on-surface-variant/50 uppercase tracking-wider">
               {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}
             </div>
           </div>
