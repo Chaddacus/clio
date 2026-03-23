@@ -17,9 +17,10 @@ class TestRegistration:
         resp = api_client.post('/api/auth/register/', data, format='json')
         assert resp.status_code == status.HTTP_201_CREATED
         assert resp.data['success'] is True
-        assert 'tokens' in resp.data['data']
-        assert 'access' in resp.data['data']['tokens']
-        assert 'refresh' in resp.data['data']['tokens']
+        assert 'user' in resp.data['data']
+        # Tokens are now httpOnly cookies, not in response body
+        assert 'access_token' in resp.cookies
+        assert 'refresh_token' in resp.cookies
         assert User.objects.filter(username='newuser').exists()
 
     def test_register_duplicate_username(self, api_client, user):
@@ -52,8 +53,10 @@ class TestLogin:
             format='json',
         )
         assert resp.status_code == status.HTTP_200_OK
-        assert 'access' in resp.data
-        assert 'refresh' in resp.data
+        assert resp.data['success'] is True
+        # Tokens are now httpOnly cookies, not in response body
+        assert 'access_token' in resp.cookies
+        assert 'refresh_token' in resp.cookies
 
     def test_login_invalid(self, api_client, user):
         resp = api_client.post(

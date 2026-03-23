@@ -7,6 +7,14 @@ from rest_framework.test import APIClient
 from apps.users.models import UserProfile
 
 
+@pytest.fixture(autouse=True)
+def _disable_throttling(settings):
+    """Disable rate limiting during tests."""
+    from django.core.cache import cache
+    cache.clear()
+    settings.REST_FRAMEWORK['DEFAULT_THROTTLE_CLASSES'] = []
+
+
 @pytest.fixture
 def api_client():
     return APIClient()

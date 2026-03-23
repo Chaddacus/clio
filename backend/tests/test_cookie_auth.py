@@ -1,23 +1,39 @@
 import pytest
 from rest_framework import status
+from rest_framework.test import APIClient
 
 
 @pytest.mark.django_db
 class TestCookieAuth:
-    def test_login_sets_httponly_cookie(self, api_client, user):
-        resp = api_client.post(
+    @pytest.fixture(autouse=True)
+    def fresh_client(self):
+        """Each test gets a fresh client to avoid cookie bleed."""
+        self.client = APIClient()
+
+    def test_login_sets_both_httponly_cookies(self, user):
+        resp = self.client.post(
             '/api/auth/login/',
             {'username': 'testuser', 'password': 'testpass123!'},
             format='json',
         )
         assert resp.status_code == status.HTTP_200_OK
         assert 'access_token' in resp.cookies
-        cookie = resp.cookies['access_token']
-        assert cookie['httponly'] is True
-        assert cookie['path'] == '/'
+        assert 'refresh_token' in resp.cookies
+        assert resp.cookies['access_token']['httponly'] is True
+        assert resp.cookies['refresh_token']['httponly'] is True
 
-    def test_register_sets_httponly_cookie(self, api_client):
-        resp = api_client.post(
+    def test_login_does_not_return_tokens_in_body(self, user):
+        resp = self.client.post(
+            '/api/auth/login/',
+            {'username': 'testuser', 'password': 'testpass123!'},
+            format='json',
+        )
+        assert resp.status_code == status.HTTP_200_OK
+        assert 'access' not in resp.data
+        assert 'refresh' not in resp.data
+
+    def test_register_sets_both_cookies(self):
+        resp = self.client.post(
             '/api/auth/register/',
             {
                 'username': 'cookieuser',
@@ -31,40 +47,66 @@ class TestCookieAuth:
         )
         assert resp.status_code == status.HTTP_201_CREATED
         assert 'access_token' in resp.cookies
+        assert 'refresh_token' in resp.cookies
 
-    def test_cookie_authenticates_request(self, api_client, user):
-        # Login to get cookie
-        login_resp = api_client.post(
+    def test_register_does_not_return_tokens_in_body(self):
+        resp = self.client.post(
+            '/api/auth/register/',
+            {
+                'username': 'cookieuser2',
+                'email': 'cookie2@example.com',
+                'first_name': 'Cookie',
+                'last_name': 'User',
+                'password': 'StrongPass123!',
+                'password_confirm': 'StrongPass123!',
+            },
+            format='json',
+        )
+        assert resp.status_code == status.HTTP_201_CREATED
+        assert 'tokens' not in resp.data.get('data', {})
+
+    def test_access_cookie_authenticates_request(self, user):
+        login_resp = self.client.post(
             '/api/auth/login/',
             {'username': 'testuser', 'password': 'testpass123!'},
             format='json',
         )
         access_token = login_resp.cookies['access_token'].value
 
-        # Make authenticated request using only the cookie (no Authorization header)
-        api_client.cookies['access_token'] = access_token
-        resp = api_client.get('/api/auth/profile/')
+        client2 = APIClient()
+        client2.cookies['access_token'] = access_token
+        resp = client2.get('/api/auth/profile/')
         assert resp.status_code == status.HTTP_200_OK
         assert resp.data['data']['username'] == 'testuser'
 
-    def test_logout_clears_cookie(self, api_client, user):
-        # Login first
-        login_resp = api_client.post(
+    def test_refresh_via_cookie(self, user):
+        login_resp = self.client.post(
+            '/api/auth/login/',
+            {'username': 'testuser', 'password': 'testpass123!'},
+            format='json',
+        )
+        refresh_token = login_resp.cookies['refresh_token'].value
+
+        client2 = APIClient()
+        client2.cookies['refresh_token'] = refresh_token
+        resp = client2.post('/api/auth/refresh/')
+        assert resp.status_code == status.HTTP_200_OK
+        assert 'access_token' in resp.cookies
+
+    def test_logout_clears_both_cookies(self, user):
+        login_resp = self.client.post(
             '/api/auth/login/',
             {'username': 'testuser', 'password': 'testpass123!'},
             format='json',
         )
         access_token = login_resp.cookies['access_token'].value
-        refresh_token = login_resp.data['refresh']
+        refresh_token = login_resp.cookies['refresh_token'].value
 
-        # Logout
-        api_client.cookies['access_token'] = access_token
-        api_client.force_authenticate(user=user)
-        resp = api_client.post(
-            '/api/auth/logout/',
-            {'refresh_token': refresh_token},
-            format='json',
-        )
+        client2 = APIClient()
+        client2.cookies['access_token'] = access_token
+        client2.cookies['refresh_token'] = refresh_token
+        client2.force_authenticate(user=user)
+        resp = client2.post('/api/auth/logout/')
         assert resp.status_code == status.HTTP_200_OK
-        # Cookie should be cleared (max-age=0 or deleted)
         assert 'access_token' in resp.cookies
+        assert 'refresh_token' in resp.cookies

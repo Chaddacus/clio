@@ -26,19 +26,12 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      const refreshToken = localStorage.getItem('refresh_token');
-      if (refreshToken) {
-        try {
-          // Refresh call sets new access_token cookie via Set-Cookie header
-          await api.post('/auth/refresh/', {
-            refresh: refreshToken
-          });
-
-          return api(originalRequest);
-        } catch (refreshError) {
-          localStorage.removeItem('refresh_token');
-          window.location.href = '/login';
-        }
+      try {
+        // Refresh token is sent via httpOnly cookie automatically
+        await api.post('/auth/refresh/');
+        return api(originalRequest);
+      } catch (refreshError) {
+        window.location.href = '/login';
       }
     }
 

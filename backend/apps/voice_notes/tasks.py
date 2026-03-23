@@ -51,7 +51,7 @@ def transcribe_voice_note_task(self, note_id: int, language: str = 'auto') -> No
     except Exception as exc:
         logger.error("Transcription task failed for note %d: %s", note_id, exc, exc_info=True)
         note.status = 'failed'
-        note.error_message = str(exc)
+        note.error_message = "Transcription failed. Please try again."
         note.save()
         raise self.retry(exc=exc)
 
@@ -91,6 +91,6 @@ def retranscribe_voice_note_task(self, note_id: int, language: str = 'auto') -> 
     except Exception as exc:
         logger.error("Re-transcription task failed for note %d: %s", note_id, exc, exc_info=True)
         note.status = 'failed'
-        note.error_message = str(exc)
+        note.error_message = "Transcription failed. Please try again."
         note.save()
         raise self.retry(exc=exc)

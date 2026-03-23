@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
-import { User, AuthTokens, LoginData, RegisterData } from '../types';
+import { User, LoginData, RegisterData } from '../types';
 import { authAPI } from '../services/api';
 import toast from 'react-hot-toast';
 
@@ -35,16 +35,6 @@ export const useAuthProvider = (): AuthContextType => {
     error: null,
   });
 
-  const saveRefreshToken = useCallback((tokens: AuthTokens) => {
-    // Access token is now an httpOnly cookie (set by backend).
-    // Only store refresh token in localStorage for refresh flow.
-    localStorage.setItem('refresh_token', tokens.refresh);
-  }, []);
-
-  const clearRefreshToken = useCallback(() => {
-    localStorage.removeItem('refresh_token');
-  }, []);
-
   const refreshProfile = useCallback(async () => {
     try {
       const response = await authAPI.getProfile();
@@ -79,17 +69,14 @@ export const useAuthProvider = (): AuthContextType => {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      const response = await authAPI.login(data);
-      const tokens = response.data;
-
-      // Access token cookie is set automatically by the backend response.
-      saveRefreshToken(tokens);
+      // Both access and refresh tokens are set as httpOnly cookies by backend
+      await authAPI.login(data);
       await refreshProfile();
 
       toast.success('Successfully logged in!');
       return true;
     } catch (error: any) {
-      const errorMessage = error.response?.data?.detail || 'Login failed';
+      const errorMessage = error.response?.data?.detail || error.response?.data?.message || 'Login failed';
       setState(prev => ({
         ...prev,
         error: errorMessage,
@@ -98,7 +85,7 @@ export const useAuthProvider = (): AuthContextType => {
       toast.error(errorMessage);
       return false;
     }
-  }, [saveRefreshToken, refreshProfile]);
+  }, [refreshProfile]);
 
   const register = useCallback(async (data: RegisterData): Promise<boolean> => {
     try {
@@ -107,8 +94,7 @@ export const useAuthProvider = (): AuthContextType => {
       const response = await authAPI.register(data);
 
       if (response.data.success && response.data.data) {
-        const { user, tokens } = response.data.data;
-        saveRefreshToken(tokens);
+        const { user } = response.data.data;
 
         setState(prev => ({
           ...prev,
@@ -133,18 +119,15 @@ export const useAuthProvider = (): AuthContextType => {
       toast.error(errorMessage);
       return false;
     }
-  }, [saveRefreshToken]);
+  }, []);
 
   const logout = useCallback(async () => {
     try {
-      const refreshToken = localStorage.getItem('refresh_token');
-      if (refreshToken) {
-        await authAPI.logout(refreshToken);
-      }
+      // Refresh token cookie is sent automatically
+      await authAPI.logout('');
     } catch (error) {
       console.error('Logout API call failed:', error);
     } finally {
-      clearRefreshToken();
       setState({
         user: null,
         isAuthenticated: false,
@@ -153,16 +136,15 @@ export const useAuthProvider = (): AuthContextType => {
       });
       toast.success('Successfully logged out!');
     }
-  }, [clearRefreshToken]);
+  }, []);
 
-  // Check authentication status on mount by trying to fetch profile.
-  // If the httpOnly cookie is present and valid, this will succeed.
+  // Check authentication status on mount.
+  // If httpOnly cookies are present and valid, profile fetch succeeds.
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
         await refreshProfile();
-      } catch (error) {
-        clearRefreshToken();
+      } catch {
         setState(prev => ({
           ...prev,
           isAuthenticated: false,
@@ -174,7 +156,7 @@ export const useAuthProvider = (): AuthContextType => {
     };
 
     checkAuthStatus();
-  }, [refreshProfile, clearRefreshToken]);
+  }, [refreshProfile]);
 
   return {
     ...state,
