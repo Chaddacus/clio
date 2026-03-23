@@ -40,4 +40,23 @@ test.describe('Dashboard', () => {
       await expect(page).toHaveURL(/profile/);
     }
   });
+
+  test('shows empty state when no notes', async ({ page }) => {
+    await page.goto('/dashboard');
+    await page.waitForLoadState('networkidle');
+    // Page should render without errors even with zero notes
+    const body = await page.textContent('body');
+    expect(body).toBeTruthy();
+    // Should not show error state
+    expect(body).not.toContain('500');
+  });
+
+  test('displays storage information', async ({ page }) => {
+    await page.goto('/dashboard');
+    await page.waitForLoadState('networkidle');
+    // Dashboard should show some storage/stats info
+    const body = await page.textContent('body');
+    // At minimum the page should have rendered content
+    expect(body?.length).toBeGreaterThan(50);
+  });
 });

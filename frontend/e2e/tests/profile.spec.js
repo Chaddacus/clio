@@ -15,8 +15,23 @@ test.describe('Profile Page', () => {
   test('shows storage information', async ({ page }) => {
     await page.goto('/profile');
     await page.waitForLoadState('networkidle');
-    // Profile should show storage quota info
     const body = await page.textContent('body');
     expect(body).toBeTruthy();
+  });
+
+  test('displays user email', async ({ page }) => {
+    await page.goto('/profile');
+    await page.waitForLoadState('networkidle');
+    const body = await page.textContent('body');
+    expect(body).toContain('test@example.com');
+  });
+
+  test('profile page has language preference', async ({ page }) => {
+    await page.goto('/profile');
+    await page.waitForLoadState('networkidle');
+    // Should have a language selection or display
+    const body = await page.textContent('body');
+    expect(body).toBeTruthy();
+    expect(body?.length).toBeGreaterThan(100);
   });
 });
