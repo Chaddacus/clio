@@ -34,7 +34,7 @@ class UserProfile(models.Model):
         default='high'
     )
     storage_quota_mb = models.PositiveIntegerField(default=1000)
-    storage_used_mb = models.FloatField(default=0.0)
+    storage_used_mb = models.DecimalField(max_digits=12, decimal_places=4, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
