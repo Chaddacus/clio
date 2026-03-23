@@ -110,10 +110,7 @@ class TestTags:
         assert Tag.objects.filter(name='meeting').exists()
 
     def test_list_tags(self, authenticated_client, user):
-        tag = Tag.objects.create(name='work', color='#00FF00')
-        # Tag must be associated with user's note to be visible
-        note = VoiceNote.objects.create(user=user, title='Tagged', status='completed')
-        note.tags.add(tag)
+        Tag.objects.create(name='work', color='#00FF00', user=user)
 
         resp = authenticated_client.get('/api/tags/')
         assert resp.status_code == status.HTTP_200_OK

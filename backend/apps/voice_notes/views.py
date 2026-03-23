@@ -12,7 +12,7 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.core.services import AudioProcessingService, WhisperTranscriptionService
+from apps.core.services import AudioProcessingService, get_transcription_service
 from apps.users.models import UserProfile
 
 from .models import Tag, TranscriptionSegment, VoiceNote
@@ -128,9 +128,10 @@ class TagListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Tag.objects.filter(
-            voice_notes__user=self.request.user
-        ).distinct().order_by('name')
+        return Tag.objects.filter(user=self.request.user).order_by('name')
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 
 class TagDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -138,9 +139,7 @@ class TagDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Tag.objects.filter(
-            voice_notes__user=self.request.user
-        ).distinct()
+        return Tag.objects.filter(user=self.request.user)
 
 
 @api_view(['POST'])
@@ -166,7 +165,7 @@ def transcribe_audio(request):
         }, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        transcription_service = WhisperTranscriptionService()
+        transcription_service = get_transcription_service()
         result = transcription_service.transcribe_audio(audio_file, language)
 
         if result['success']:
