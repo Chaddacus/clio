@@ -177,14 +177,21 @@ const NotesGrid: React.FC<NotesGridProps> = ({
 
   if (notes.length === 0) {
     return (
-      <div className={`text-center py-12 ${className}`}>
-        <MicrophoneIcon className="h-12 w-12 text-on-surface-variant/30 mx-auto mb-4" />
+      <div className={`text-center py-16 ${className}`}>
+        <MicrophoneIcon className="h-12 w-12 text-on-surface-variant/30 mx-auto mb-4" aria-hidden="true" />
         <h3 className="font-editorial text-xl font-light text-on-surface mb-2">
           No voice notes yet
         </h3>
-        <p className="text-on-surface-variant text-sm">
+        <p className="text-on-surface-variant text-sm mb-6">
           Start recording your first voice note to get started
         </p>
+        <a
+          href="/record"
+          className="inline-flex items-center px-6 py-3 text-sm font-medium rounded-full text-surface bg-gradient-to-r from-primary to-primary-container hover:opacity-90 transition-opacity"
+        >
+          <MicrophoneIcon className="h-4 w-4 mr-2" />
+          Record your first note
+        </a>
       </div>
     );
   }
@@ -297,7 +304,7 @@ const NotesGrid: React.FC<NotesGridProps> = ({
               </div>
 
               {note.transcription_confidence && (
-                <div className="mt-2 text-xs text-on-surface-variant/50 uppercase tracking-wider">
+                <div className="mt-2 text-xs text-on-surface-variant/60 uppercase tracking-wider">
                   Confidence: {Math.round(note.transcription_confidence * 100)}%
                 </div>
               )}
@@ -342,7 +349,7 @@ const NotesGrid: React.FC<NotesGridProps> = ({
               </button>
             </div>
 
-            <div className="mt-2 text-xs text-on-surface-variant/50 uppercase tracking-wider">
+            <div className="mt-2 text-xs text-on-surface-variant/60 uppercase tracking-wider">
               {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}
             </div>
           </div>

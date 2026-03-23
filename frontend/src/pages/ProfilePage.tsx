@@ -141,7 +141,7 @@ const ProfilePage: React.FC = () => {
               Username
             </label>
             <p className="text-on-surface">{profile.username}</p>
-            <p className="text-xs text-on-surface-variant/50 mt-1">Username cannot be changed</p>
+            <p className="text-xs text-on-surface-variant/70 mt-1">Username is permanent. Contact support to update.</p>
           </div>
 
           <div>
@@ -149,7 +149,7 @@ const ProfilePage: React.FC = () => {
               Email
             </label>
             <p className="text-on-surface">{profile.email}</p>
-            <p className="text-xs text-on-surface-variant/50 mt-1">Email cannot be changed</p>
+            <p className="text-xs text-on-surface-variant/70 mt-1">Email is permanent. Contact support to update.</p>
           </div>
         </div>
       </div>

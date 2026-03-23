@@ -170,9 +170,11 @@ const NoteDetailPage: React.FC = () => {
                 <div>
                   <p className="font-medium text-sm text-on-surface">Audio file not available</p>
                   <p className="text-sm text-on-surface-variant">The audio recording for this note could not be found.</p>
-                  <p className="text-xs text-on-surface-variant/50 mt-1">
-                    Debug: audio_url={note.audio_url || 'null'}, audio_file={note.audio_file || 'null'}
-                  </p>
+                  {process.env.NODE_ENV === 'development' && (
+                    <p className="text-xs text-on-surface-variant/60 mt-1">
+                      Debug: audio_url={note.audio_url || 'null'}, audio_file={note.audio_file || 'null'}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

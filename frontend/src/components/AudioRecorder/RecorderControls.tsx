@@ -174,15 +174,17 @@ const RecorderControls: React.FC<RecorderControlsProps> = ({
         </div>
       )}
 
-      {/* Audio Debug Panel */}
-      <div className="mb-6">
-        <AudioDebugPanel
-          audioLevel={recorder.audioLevel}
-          isRecording={recorder.isRecording}
-          isPaused={recorder.isPaused}
-          recordingTime={recorder.recordingTime}
-        />
-      </div>
+      {/* Audio Debug Panel — dev only */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="mb-6">
+          <AudioDebugPanel
+            audioLevel={recorder.audioLevel}
+            isRecording={recorder.isRecording}
+            isPaused={recorder.isPaused}
+            recordingTime={recorder.recordingTime}
+          />
+        </div>
+      )}
 
       {/* Control Buttons */}
       <div className="flex justify-center items-center space-x-4">

@@ -89,7 +89,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </nav>
 
         {/* User info and logout */}
-        <div className="flex-shrink-0 p-4 bg-surface-container-lowest">
+        <div className="flex-shrink-0 p-4 bg-surface-container-lowest border-t border-outline-variant/10">
           <div className="flex items-center mb-4">
             <div className="flex-shrink-0">
               <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">

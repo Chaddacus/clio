@@ -129,7 +129,7 @@ const LoginPage: React.FC = () => {
         </div>
 
         <div className="text-center">
-          <p className="text-xs text-on-surface-variant/50">
+          <p className="text-xs text-on-surface-variant/60">
             By signing in, you agree to our Terms of Service and Privacy Policy.
           </p>
         </div>
