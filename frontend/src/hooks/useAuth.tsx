@@ -74,6 +74,7 @@ export const useAuthProvider = (): AuthContextType => {
       await authAPI.login(data);
       await refreshProfile();
 
+      setState(prev => ({ ...prev, isLoading: false }));
       toast.success('Successfully logged in!');
       return true;
     } catch (error: any) {

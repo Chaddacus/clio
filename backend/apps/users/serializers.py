@@ -30,6 +30,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(source='user.email', read_only=True)
     first_name = serializers.CharField(source='user.first_name', read_only=True)
     last_name = serializers.CharField(source='user.last_name', read_only=True)
+    storage_used_mb = serializers.FloatField(read_only=True)
     storage_percentage = serializers.SerializerMethodField()
 
     class Meta:
