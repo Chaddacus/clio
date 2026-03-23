@@ -91,22 +91,26 @@ class WhisperTranscriptionService:
             }
 
     def _call_openai_with_retry(self, temp_file_path: str, language: str) -> Any:
-        last_error = None
+        last_error: Optional[Exception] = None
         for attempt in range(MAX_RETRIES + 1):
             try:
                 with open(temp_file_path, 'rb') as audio:
-                    kwargs = {
-                        'model': self.model,
-                        'file': audio,
-                        'temperature': self.temperature,
-                        'response_format': 'verbose_json',
-                    }
-                    if language != 'auto':
-                        kwargs['language'] = language
-                    return self.client.audio.transcriptions.create(**kwargs)
+                    if language == 'auto':
+                        return self.client.audio.transcriptions.create(
+                            model=self.model,
+                            file=audio,
+                            temperature=self.temperature,
+                            response_format="verbose_json",
+                        )
+                    return self.client.audio.transcriptions.create(
+                        model=self.model,
+                        file=audio,
+                        language=language,
+                        temperature=self.temperature,
+                        response_format="verbose_json",
+                    )
             except Exception as e:
                 last_error = e
-                # Only retry on transient errors
                 error_name = type(e).__name__
                 is_transient = any(
                     keyword in error_name.lower()
@@ -119,7 +123,9 @@ class WhisperTranscriptionService:
                     time.sleep(wait)
                 else:
                     raise
-        raise last_error  # Should not reach here, but safety net
+        if last_error is not None:
+            raise last_error
+        raise RuntimeError("Retry loop exited unexpectedly")
 
     def _calculate_average_confidence(self, segments: list) -> Optional[float]:
         if not segments:

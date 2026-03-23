@@ -20,6 +20,19 @@ jobs:
       - run: pip install ruff==0.1.9
       - run: ruff check .
 
+  backend-typecheck:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - run: pip install -r requirements.txt
+      - run: mypy apps/ --ignore-missing-imports
+
   backend-test:
     runs-on: ubuntu-latest
     defaults:
