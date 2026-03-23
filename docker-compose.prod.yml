@@ -16,8 +16,17 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
-    build: 
+    build:
       context: ./backend
       dockerfile: Dockerfile
     environment:
@@ -30,11 +39,14 @@ services:
       - DB_PORT=5432
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+      - REDIS_URL=redis://redis:6379/0
     volumes:
       - media_files:/app/media
       - static_files:/app/staticfiles
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     restart: unless-stopped
     command: >
@@ -61,6 +73,30 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  celery:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A config worker -l info --concurrency=2
+    environment:
+      - DEBUG=False
+      - SECRET_KEY=${SECRET_KEY}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=db
+      - DB_PORT=5432
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - media_files:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
 
   nginx:
     image: nginx:alpine

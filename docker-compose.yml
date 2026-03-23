@@ -17,6 +17,16 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build: ./backend
     environment:
@@ -29,6 +39,7 @@ services:
       - DB_PORT=5432
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ALLOWED_HOSTS=localhost,127.0.0.1,backend
+      - REDIS_URL=redis://redis:6379/0
     volumes:
       - ./backend:/app
       - media_files:/app/media
@@ -36,6 +47,8 @@ services:
       - "8011:8000"
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     command: >
       sh -c "
@@ -66,6 +79,28 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  celery:
+    build: ./backend
+    command: celery -A config worker -l info
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=your-secret-key-here
+      - DB_NAME=voice_notes_db
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=db
+      - DB_PORT=5432
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+      - media_files:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
 volumes:
   postgres_data:

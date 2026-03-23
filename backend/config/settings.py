@@ -188,6 +188,12 @@ WHISPER_MAX_SENTENCE_LENGTH = config('WHISPER_MAX_SENTENCE_LENGTH', default=150,
 AUDIO_UPLOAD_MAX_SIZE = 50 * 1024 * 1024  # 50MB
 AUDIO_ALLOWED_FORMATS = ['wav', 'mp3', 'ogg', 'webm', 'm4a']
 
+# Celery
+CELERY_BROKER_URL = config('REDIS_URL', default='redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = config('REDIS_URL', default='redis://localhost:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+
 # Transport security (enabled only in production)
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
