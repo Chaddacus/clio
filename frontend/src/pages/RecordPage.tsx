@@ -108,8 +108,8 @@ const RecordPage: React.FC = () => {
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Header */}
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Record Voice Note</h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <h1 className="font-editorial text-4xl font-light text-on-surface mb-2">Record Voice Note</h1>
+        <p className="text-on-surface-variant text-sm">
           Record your thoughts, meetings, or any audio content
         </p>
       </div>
@@ -140,11 +140,11 @@ const RecordPage: React.FC = () => {
         {/* Post-recording options */}
         {audioBlob && !isRecording && (
           <div className="card p-6 space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recording Complete</h3>
-            
+            <h3 className="font-editorial text-xl font-light text-on-surface">Recording Complete</h3>
+
             {/* Title input */}
             <div>
-              <label htmlFor="note-title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label htmlFor="note-title" className="block text-xs font-medium text-on-surface-variant uppercase tracking-wider mb-2">
                 Title (optional)
               </label>
               <input
@@ -157,14 +157,14 @@ const RecordPage: React.FC = () => {
                 maxLength={255}
                 disabled={createNoteMutation.isLoading}
               />
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-xs text-on-surface-variant mt-2">
                 If left blank, a title will be generated from the transcription
               </p>
             </div>
 
             {/* Audio preview */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-xs font-medium text-on-surface-variant uppercase tracking-wider mb-2">
                 Preview
               </label>
               <audio
@@ -179,7 +179,7 @@ const RecordPage: React.FC = () => {
               <button
                 onClick={handleSave}
                 disabled={createNoteMutation.isLoading}
-                className="btn-primary flex-1"
+                className="btn-primary flex-1 justify-center"
               >
                 {createNoteMutation.isLoading ? (
                   <>
@@ -190,7 +190,7 @@ const RecordPage: React.FC = () => {
                   'Save & Transcribe'
                 )}
               </button>
-              
+
               <button
                 onClick={handleStartOver}
                 disabled={createNoteMutation.isLoading}
@@ -198,11 +198,11 @@ const RecordPage: React.FC = () => {
               >
                 Record Again
               </button>
-              
+
               <button
                 onClick={handleDiscard}
                 disabled={createNoteMutation.isLoading}
-                className="btn-secondary text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                className="btn-secondary text-error hover:text-error"
               >
                 Discard
               </button>
@@ -211,24 +211,24 @@ const RecordPage: React.FC = () => {
         )}
 
         {/* Recording tips */}
-        <div className="card p-6 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700">
-          <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-3">
+        <div className="card p-6">
+          <h3 className="font-editorial text-lg font-light text-on-surface mb-3">
             Recording Tips
           </h3>
-          <ul className="space-y-2 text-sm text-blue-800 dark:text-blue-200">
-            <li>• <strong>Allow microphone access</strong> when prompted by your browser</li>
-            <li>• Find a quiet environment to minimize background noise</li>
-            <li>• Speak clearly and at a normal pace</li>
-            <li>• Keep your microphone about 6 inches from your mouth</li>
-            <li>• Avoid tapping or rustling sounds during recording</li>
-            <li>• You can pause and resume recording as needed</li>
-            <li>• Maximum file size is 50MB per recording</li>
+          <ul className="space-y-2 text-sm text-on-surface-variant">
+            <li><strong className="text-on-surface font-medium">Allow microphone access</strong> when prompted by your browser</li>
+            <li>Find a quiet environment to minimize background noise</li>
+            <li>Speak clearly and at a normal pace</li>
+            <li>Keep your microphone about 6 inches from your mouth</li>
+            <li>Avoid tapping or rustling sounds during recording</li>
+            <li>You can pause and resume recording as needed</li>
+            <li>Maximum file size is 50MB per recording</li>
           </ul>
         </div>
 
         {/* Browser compatibility note */}
         <div className="text-center">
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-on-surface-variant/50">
             This app requires microphone access and works best in Chrome, Firefox, Safari, and Edge.
           </p>
         </div>

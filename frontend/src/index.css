@@ -1,3 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,36 +9,36 @@
   html {
     font-family: 'Inter', system-ui, sans-serif;
   }
-  
+
   body {
-    @apply bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100;
+    @apply bg-surface text-on-surface;
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:bg-gray-400 disabled:cursor-not-allowed;
+    @apply inline-flex items-center px-6 py-2.5 text-sm font-medium rounded-full text-surface bg-gradient-to-r from-primary to-primary-container hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-surface disabled:opacity-40 disabled:cursor-not-allowed transition-opacity duration-200;
   }
-  
+
   .btn-secondary {
-    @apply inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500;
+    @apply inline-flex items-center px-6 py-2.5 text-sm font-medium text-on-surface bg-transparent border-b border-outline-variant/15 hover:border-outline-variant/40 focus:outline-none transition-colors duration-200;
   }
-  
+
   .input-primary {
-    @apply block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100;
+    @apply block w-full px-0 py-2 bg-transparent border-0 border-b border-outline-variant/15 text-on-surface placeholder-on-surface-variant/50 focus:outline-none focus:border-secondary focus:ring-0 transition-colors duration-200;
   }
-  
+
   .card {
-    @apply bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700;
+    @apply bg-surface-container-low rounded-lg;
   }
-  
+
   .line-clamp-2 {
     overflow: hidden;
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
   }
-  
+
   .line-clamp-3 {
     overflow: hidden;
     display: -webkit-box;
@@ -49,7 +52,7 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  
+
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
@@ -62,15 +65,16 @@
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-gray-100 dark:bg-gray-800;
+  background-color: #0e0e0d;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+  background-color: #353533;
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-400 dark:bg-gray-500;
+  background-color: #57423b;
 }
 
 /* Loading animation */
@@ -91,7 +95,7 @@
 
 /* Focus styles for accessibility */
 .focus-visible:focus {
-  @apply outline-none ring-2 ring-primary-500 ring-offset-2;
+  @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-surface;
 }
 
 /* Dark mode transition */
@@ -106,12 +110,22 @@
   .no-print {
     display: none !important;
   }
-  
+
   .print-break-before {
     break-before: page;
   }
-  
+
   .print-break-after {
     break-after: page;
   }
+}
+
+/* Coral glow effect for primary CTA */
+.btn-record-glow:hover {
+  box-shadow: 0 0 24px 4px rgba(255, 181, 156, 0.25);
+}
+
+/* Input range slider styling for dark theme */
+input[type="range"] {
+  accent-color: #ffb59c;
 }

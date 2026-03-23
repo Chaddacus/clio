@@ -65,10 +65,10 @@ const ProfilePage: React.FC = () => {
   if (!profile) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+        <h2 className="font-editorial text-2xl font-light text-on-surface mb-2">
           Profile not found
         </h2>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-on-surface-variant text-sm">
           Unable to load your profile information.
         </p>
       </div>
@@ -80,8 +80,8 @@ const ProfilePage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Profile Settings</h1>
-          <p className="text-gray-600 dark:text-gray-400">Manage your account preferences</p>
+          <h1 className="font-editorial text-4xl font-light text-on-surface">Profile</h1>
+          <p className="text-on-surface-variant text-sm mt-1">Manage your account preferences</p>
         </div>
         {!isEditing && (
           <button
@@ -95,13 +95,13 @@ const ProfilePage: React.FC = () => {
 
       {/* Profile Information */}
       <div className="card p-6 space-y-6">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+        <h2 className="font-editorial text-xl font-light text-on-surface">
           Personal Information
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-xs font-medium text-on-surface-variant uppercase tracking-wider mb-2">
               First Name
             </label>
             {isEditing ? (
@@ -114,12 +114,12 @@ const ProfilePage: React.FC = () => {
                 disabled={updateProfileMutation.isLoading}
               />
             ) : (
-              <p className="text-gray-900 dark:text-white">{profile.first_name}</p>
+              <p className="text-on-surface">{profile.first_name}</p>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-xs font-medium text-on-surface-variant uppercase tracking-wider mb-2">
               Last Name
             </label>
             {isEditing ? (
@@ -132,37 +132,37 @@ const ProfilePage: React.FC = () => {
                 disabled={updateProfileMutation.isLoading}
               />
             ) : (
-              <p className="text-gray-900 dark:text-white">{profile.last_name}</p>
+              <p className="text-on-surface">{profile.last_name}</p>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-xs font-medium text-on-surface-variant uppercase tracking-wider mb-2">
               Username
             </label>
-            <p className="text-gray-900 dark:text-white">{profile.username}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Username cannot be changed</p>
+            <p className="text-on-surface">{profile.username}</p>
+            <p className="text-xs text-on-surface-variant/50 mt-1">Username cannot be changed</p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-xs font-medium text-on-surface-variant uppercase tracking-wider mb-2">
               Email
             </label>
-            <p className="text-gray-900 dark:text-white">{profile.email}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Email cannot be changed</p>
+            <p className="text-on-surface">{profile.email}</p>
+            <p className="text-xs text-on-surface-variant/50 mt-1">Email cannot be changed</p>
           </div>
         </div>
       </div>
 
       {/* Preferences */}
       <div className="card p-6 space-y-6">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+        <h2 className="font-editorial text-xl font-light text-on-surface">
           Recording Preferences
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-xs font-medium text-on-surface-variant uppercase tracking-wider mb-2">
               Preferred Language
             </label>
             {isEditing ? (
@@ -185,12 +185,12 @@ const ProfilePage: React.FC = () => {
                 <option value="zh-CN">Chinese (Simplified)</option>
               </select>
             ) : (
-              <p className="text-gray-900 dark:text-white">{profile.preferred_language}</p>
+              <p className="text-on-surface">{profile.preferred_language}</p>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-xs font-medium text-on-surface-variant uppercase tracking-wider mb-2">
               Audio Quality
             </label>
             {isEditing ? (
@@ -206,7 +206,7 @@ const ProfilePage: React.FC = () => {
                 <option value="low">Low (8kHz)</option>
               </select>
             ) : (
-              <p className="text-gray-900 dark:text-white">
+              <p className="text-on-surface">
                 {profile.audio_quality === 'high' && 'High (44.1kHz)'}
                 {profile.audio_quality === 'medium' && 'Medium (16kHz)'}
                 {profile.audio_quality === 'low' && 'Low (8kHz)'}
@@ -218,25 +218,25 @@ const ProfilePage: React.FC = () => {
 
       {/* Storage Usage */}
       <div className="card p-6 space-y-4">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+        <h2 className="font-editorial text-xl font-light text-on-surface">
           Storage Usage
         </h2>
-        
-        <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
+
+        <div className="flex items-center justify-between text-xs text-on-surface-variant uppercase tracking-wider mb-2">
           <span>Used Storage</span>
           <span>
             {profile.storage_used_mb.toFixed(1)} MB / {profile.storage_quota_mb} MB
           </span>
         </div>
-        
-        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+
+        <div className="w-full bg-surface-container-lowest rounded-full h-2">
           <div
-            className="bg-primary-500 h-3 rounded-full transition-all duration-300"
+            className="bg-gradient-to-r from-primary to-primary-container h-2 rounded-full transition-all duration-300"
             style={{ width: `${Math.min(profile.storage_percentage, 100)}%` }}
           />
         </div>
-        
-        <div className="text-sm text-gray-500 dark:text-gray-400">
+
+        <div className="text-xs text-on-surface-variant uppercase tracking-wider">
           {profile.storage_percentage.toFixed(1)}% of your storage quota is being used
         </div>
       </div>
@@ -247,7 +247,7 @@ const ProfilePage: React.FC = () => {
           <button
             onClick={handleSave}
             disabled={updateProfileMutation.isLoading}
-            className="btn-primary flex-1"
+            className="btn-primary flex-1 justify-center"
           >
             {updateProfileMutation.isLoading ? (
               <>
@@ -258,11 +258,11 @@ const ProfilePage: React.FC = () => {
               'Save Changes'
             )}
           </button>
-          
+
           <button
             onClick={handleCancel}
             disabled={updateProfileMutation.isLoading}
-            className="btn-secondary flex-1"
+            className="btn-secondary flex-1 justify-center"
           >
             Cancel
           </button>
@@ -271,10 +271,10 @@ const ProfilePage: React.FC = () => {
 
       {/* Account Info */}
       <div className="card p-6">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+        <h2 className="font-editorial text-xl font-light text-on-surface mb-4">
           Account Information
         </h2>
-        <div className="text-sm text-gray-600 dark:text-gray-400">
+        <div className="text-xs text-on-surface-variant uppercase tracking-wider">
           <p>Account created: {new Date(profile.created_at).toLocaleDateString()}</p>
         </div>
       </div>

@@ -65,12 +65,12 @@ const Dashboard: React.FC = () => {
   const notes = notesData?.data.results || [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-          <p className="text-gray-600 dark:text-gray-400">Manage your voice notes</p>
+          <h1 className="font-editorial text-4xl font-light text-on-surface">Dashboard</h1>
+          <p className="text-on-surface-variant text-sm mt-1">Manage your voice notes</p>
         </div>
         <Link
           to="/record"
@@ -85,79 +85,63 @@ const Dashboard: React.FC = () => {
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="card p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <MicrophoneIcon className="h-8 w-8 text-primary-500" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                    Total Notes
-                  </dt>
-                  <dd className="text-lg font-medium text-gray-900 dark:text-white">
-                    {stats.total_notes}
-                  </dd>
-                </dl>
+            <div className="flex flex-col items-start space-y-3">
+              <MicrophoneIcon className="h-6 w-6 text-primary" />
+              <div>
+                <dd className="text-2xl font-medium text-on-surface">
+                  {stats.total_notes}
+                </dd>
+                <dt className="text-xs font-medium text-on-surface-variant uppercase tracking-wider mt-1">
+                  Total Notes
+                </dt>
               </div>
             </div>
           </div>
 
           <div className="card p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="h-8 w-8 bg-green-500 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">✓</span>
-                </div>
+            <div className="flex flex-col items-start space-y-3">
+              <div className="h-6 w-6 flex items-center justify-center">
+                <span className="text-secondary font-bold text-base">✓</span>
               </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                    Completed
-                  </dt>
-                  <dd className="text-lg font-medium text-gray-900 dark:text-white">
-                    {stats.completed_notes}
-                  </dd>
-                </dl>
+              <div>
+                <dd className="text-2xl font-medium text-on-surface">
+                  {stats.completed_notes}
+                </dd>
+                <dt className="text-xs font-medium text-on-surface-variant uppercase tracking-wider mt-1">
+                  Completed
+                </dt>
               </div>
             </div>
           </div>
 
           <div className="card p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="h-8 w-8 bg-blue-500 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">⟳</span>
-                </div>
+            <div className="flex flex-col items-start space-y-3">
+              <div className="h-6 w-6 flex items-center justify-center">
+                <span className="text-primary font-bold text-base animate-pulse">⟳</span>
               </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                    Processing
-                  </dt>
-                  <dd className="text-lg font-medium text-gray-900 dark:text-white">
-                    {stats.processing_notes}
-                  </dd>
-                </dl>
+              <div>
+                <dd className="text-2xl font-medium text-on-surface">
+                  {stats.processing_notes}
+                </dd>
+                <dt className="text-xs font-medium text-on-surface-variant uppercase tracking-wider mt-1">
+                  Processing
+                </dt>
               </div>
             </div>
           </div>
 
           <div className="card p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="h-8 w-8 bg-purple-500 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">♥</span>
-                </div>
+            <div className="flex flex-col items-start space-y-3">
+              <div className="h-6 w-6 flex items-center justify-center">
+                <span className="text-primary font-bold text-base">♥</span>
               </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                    Favorites
-                  </dt>
-                  <dd className="text-lg font-medium text-gray-900 dark:text-white">
-                    {stats.favorite_notes}
-                  </dd>
-                </dl>
+              <div>
+                <dd className="text-2xl font-medium text-on-surface">
+                  {stats.favorite_notes}
+                </dd>
+                <dt className="text-xs font-medium text-on-surface-variant uppercase tracking-wider mt-1">
+                  Favorites
+                </dt>
               </div>
             </div>
           </div>
@@ -167,19 +151,19 @@ const Dashboard: React.FC = () => {
       {/* Storage Usage */}
       {stats && (
         <div className="card p-6">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white">Storage Usage</h3>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-editorial text-xl font-light text-on-surface">Storage Usage</h3>
+            <span className="text-xs text-on-surface-variant uppercase tracking-wider">
               {stats.storage_used_mb.toFixed(1)} MB / {stats.storage_quota_mb} MB
             </span>
           </div>
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+          <div className="w-full bg-surface-container-lowest rounded-full h-2">
             <div
-              className="bg-primary-500 h-2 rounded-full"
+              className="bg-gradient-to-r from-primary to-primary-container h-2 rounded-full"
               style={{ width: `${Math.min(stats.storage_percentage, 100)}%` }}
             />
           </div>
-          <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+          <div className="mt-2 text-xs text-on-surface-variant uppercase tracking-wider">
             {stats.storage_percentage.toFixed(1)}% used
           </div>
         </div>
@@ -187,11 +171,10 @@ const Dashboard: React.FC = () => {
 
       {/* Notes Grid */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Recent Notes</h2>
-          {/* Add filters/search here in future */}
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="font-editorial text-2xl font-light text-on-surface">Recent Notes</h2>
         </div>
-        
+
         {isLoading ? (
           <LoadingSpinner className="py-12" />
         ) : (

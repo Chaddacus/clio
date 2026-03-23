@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  PlayIcon, 
-  PauseIcon, 
+import {
+  PlayIcon,
+  PauseIcon,
   SpeakerWaveIcon,
   SpeakerXMarkIcon,
   ForwardIcon,
@@ -55,7 +55,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
       const current = audio.currentTime || 0;
       setCurrentTime(current);
       onTimeUpdate?.(current);
-      
+
       // Find active segment based on current time
       const currentSegmentIndex = segments.findIndex(
         segment => current >= segment.start_time && current <= segment.end_time
@@ -120,11 +120,11 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
           setIsLoading(true);
           setHasLoadedAudio(true);
           // Audio element will load automatically due to useEffect dependency change
-          
+
           // Wait briefly for initial loading before trying to play
           await new Promise(resolve => setTimeout(resolve, 100));
         }
-        
+
         await audio.play();
       }
     } catch (err) {
@@ -149,7 +149,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     const rect = e.currentTarget.getBoundingClientRect();
     const clickPosition = (e.clientX - rect.left) / rect.width;
     const newTime = clickPosition * duration;
-    
+
     audio.currentTime = newTime;
     setCurrentTime(newTime);
   };
@@ -180,14 +180,14 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const skipForward = async () => {
     const audio = audioRef.current;
     if (!audio) return;
-    
+
     // Load audio if not loaded yet
     if (!hasLoadedAudio) {
       setIsLoading(true);
       setHasLoadedAudio(true);
       await new Promise(resolve => setTimeout(resolve, 200));
     }
-    
+
     const newTime = Math.min(currentTime + 10, duration);
     audio.currentTime = newTime;
   };
@@ -195,14 +195,14 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const skipBackward = async () => {
     const audio = audioRef.current;
     if (!audio) return;
-    
+
     // Load audio if not loaded yet
     if (!hasLoadedAudio) {
       setIsLoading(true);
       setHasLoadedAudio(true);
       await new Promise(resolve => setTimeout(resolve, 200));
     }
-    
+
     const newTime = Math.max(currentTime - 10, 0);
     audio.currentTime = newTime;
   };
@@ -210,24 +210,24 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const handleSegmentClick = async (segment: TranscriptionSegment) => {
     const audio = audioRef.current;
     if (!audio) return;
-    
+
     // Load audio if not loaded yet
     if (!hasLoadedAudio) {
       setIsLoading(true);
       setHasLoadedAudio(true);
       await new Promise(resolve => setTimeout(resolve, 200));
     }
-    
+
     audio.currentTime = segment.start_time;
     onSegmentClick?.(segment);
   };
 
   const getSegmentPosition = (segment: TranscriptionSegment) => {
     if (duration === 0) return { left: 0, width: 0 };
-    
+
     const startPercent = (segment.start_time / duration) * 100;
     const widthPercent = (segment.duration / duration) * 100;
-    
+
     return {
       left: `${startPercent}%`,
       width: `${widthPercent}%`,
@@ -236,7 +236,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
   const formatTime = (seconds: number): string => {
     if (!isFinite(seconds) || isNaN(seconds)) return '0:00';
-    
+
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -245,7 +245,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 ${className}`}>
+    <div className={`bg-surface-container-lowest rounded-lg p-4 ${className}`}>
       {/* Simple HTML5 Audio with format fallbacks - browser handles all streaming */}
       <audio
         ref={audioRef}
@@ -268,25 +268,25 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
       <div className="flex items-center space-x-4 mb-4">
         <button
           onClick={skipBackward}
-          className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          className="p-2 rounded-full bg-surface-container hover:bg-surface-container-high text-on-surface hover:text-primary transition-colors"
           title="Rewind 10 seconds"
           disabled={isLoading}
         >
-          <BackwardIcon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+          <BackwardIcon className="h-5 w-5" />
         </button>
 
         <button
           onClick={handlePlayPause}
           disabled={isLoading}
           className={`p-3 rounded-full transition-colors ${
-            isLoading 
-              ? 'bg-gray-400 cursor-not-allowed text-white' 
-              : 'bg-primary-500 hover:bg-primary-600 text-white'
+            isLoading
+              ? 'bg-surface-container cursor-not-allowed text-on-surface-variant'
+              : 'bg-gradient-to-br from-primary to-primary-container hover:opacity-90 text-surface'
           }`}
           title={isPlaying ? 'Pause' : 'Play'}
         >
           {isLoading ? (
-            <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-on-surface-variant border-t-transparent rounded-full animate-spin" />
           ) : isPlaying ? (
             <PauseIcon className="h-6 w-6" />
           ) : (
@@ -296,22 +296,22 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
         <button
           onClick={skipForward}
-          className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          className="p-2 rounded-full bg-surface-container hover:bg-surface-container-high text-on-surface hover:text-primary transition-colors"
           title="Forward 10 seconds"
           disabled={isLoading}
         >
-          <ForwardIcon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+          <ForwardIcon className="h-5 w-5" />
         </button>
 
         <div className="flex items-center space-x-2 ml-4">
           <button
             onClick={toggleMute}
-            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="p-1 rounded hover:bg-surface-container transition-colors text-on-surface-variant hover:text-on-surface"
           >
             {isMuted ? (
-              <SpeakerXMarkIcon className="h-5 w-5 text-gray-500" />
+              <SpeakerXMarkIcon className="h-5 w-5" />
             ) : (
-              <SpeakerWaveIcon className="h-5 w-5 text-gray-500" />
+              <SpeakerWaveIcon className="h-5 w-5" />
             )}
           </button>
           <input
@@ -321,13 +321,13 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
             step="0.1"
             value={isMuted ? 0 : volume}
             onChange={handleVolumeChange}
-            className="w-20 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            className="w-20 h-1.5 bg-surface-container rounded-lg appearance-none cursor-pointer"
           />
         </div>
 
         <div className="flex-1" />
 
-        <div className="text-sm text-gray-500 dark:text-gray-400 font-mono">
+        <div className="text-sm text-on-surface-variant font-mono">
           {formatTime(currentTime)} / {formatTime(duration)}
         </div>
       </div>
@@ -335,7 +335,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
       {/* Progress Bar with Segments */}
       <div className="relative">
         <div
-          className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full cursor-pointer relative overflow-hidden"
+          className="w-full h-1.5 bg-surface-container rounded-full cursor-pointer relative overflow-hidden"
           onClick={handleProgressClick}
         >
           {/* Segment markers */}
@@ -344,8 +344,8 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
               key={segment.id}
               className={`absolute top-0 bottom-0 rounded cursor-pointer transition-colors ${
                 index === activeSegmentIndex
-                  ? 'bg-primary-400 dark:bg-primary-500 z-20'
-                  : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 z-10'
+                  ? 'bg-primary z-20'
+                  : 'bg-surface-container-highest hover:bg-outline z-10'
               }`}
               style={getSegmentPosition(segment)}
               onClick={(e) => {
@@ -355,17 +355,17 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
               title={`${segment.text.substring(0, 50)}...`}
             />
           ))}
-          
+
           {/* Progress indicator */}
           <div
-            className="absolute top-0 left-0 h-2 bg-primary-500 rounded-full z-30 transition-all duration-100"
+            className="absolute top-0 left-0 h-full bg-gradient-to-r from-primary to-primary-container rounded-full z-30 transition-all duration-100"
             style={{ width: `${progressPercentage}%` }}
           />
         </div>
 
         {/* Time markers */}
         {segments.length > 0 && (
-          <div className="flex justify-between text-xs text-gray-400 mt-1">
+          <div className="flex justify-between text-xs text-on-surface-variant uppercase tracking-wider mt-1">
             <span>0:00</span>
             <span>{formatTime(duration)}</span>
           </div>
@@ -374,8 +374,8 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
       {/* Error Message */}
       {error && (
-        <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700">
-          <div className="flex items-center space-x-2 text-red-700 dark:text-red-300">
+        <div className="mt-3 p-3 bg-error-container/20 rounded-lg">
+          <div className="flex items-center space-x-2 text-error">
             <svg className="h-5 w-5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
             </svg>
@@ -389,9 +389,9 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
       {/* Loading State */}
       {isLoading && (
-        <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
-          <div className="flex items-center space-x-2 text-blue-700 dark:text-blue-300">
-            <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+        <div className="mt-3 p-3 bg-surface-container rounded-lg">
+          <div className="flex items-center space-x-2 text-on-surface-variant">
+            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin flex-shrink-0" />
             <p className="text-sm">Loading audio...</p>
           </div>
         </div>
@@ -399,15 +399,15 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
       {/* Current Segment Info */}
       {activeSegmentIndex !== null && segments[activeSegmentIndex] && (
-        <div className="mt-3 p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-200 dark:border-primary-700">
-          <div className="flex items-center justify-between text-sm text-primary-700 dark:text-primary-300 mb-1">
+        <div className="mt-3 p-3 bg-surface-container-high rounded-lg">
+          <div className="flex items-center justify-between text-xs text-on-surface-variant uppercase tracking-wider mb-1">
             <span>Current segment</span>
             <span>
-              {formatTime(segments[activeSegmentIndex].start_time)} - {' '}
+              {formatTime(segments[activeSegmentIndex].start_time)} -{' '}
               {formatTime(segments[activeSegmentIndex].end_time)}
             </span>
           </div>
-          <p className="text-gray-800 dark:text-gray-200">
+          <p className="text-on-surface font-sans text-sm leading-relaxed">
             {segments[activeSegmentIndex].text}
           </p>
         </div>
