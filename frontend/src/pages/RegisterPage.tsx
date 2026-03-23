@@ -187,7 +187,7 @@ const RegisterPage: React.FC = () => {
             </div>
 
             <div className="text-center">
-              <p className="text-xs text-on-surface-variant/50">
+              <p className="text-xs text-on-surface-variant/60">
                 By creating an account, you agree to our{' '}
                 <a href="#" className="hover:text-primary transition-colors">
                   Terms of Service

@@ -106,27 +106,13 @@ const RecordPage: React.FC = () => {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="text-center">
+      {/* Header — left-aligned to match Dashboard/Profile */}
+      <div>
         <h1 className="font-editorial text-4xl font-light text-on-surface mb-2">Record Voice Note</h1>
         <p className="text-on-surface-variant text-sm">
           Record your thoughts, meetings, or any audio content
         </p>
       </div>
-
-      {/* Debug Section - Temporarily hidden to focus on main controls */}
-      {false && (
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4">Debug Recording Issue</h2>
-          <RecordingDebugger onComplete={handleRecordingComplete} />
-        </div>
-      )}
-
-      {/* Microphone Permission */}
-      <MicrophonePermission
-        onPermissionChange={handlePermissionChange}
-        onRequestPermission={requestMicrophonePermission}
-      />
 
       {/* Recording Interface */}
       <div className="space-y-6">
@@ -228,7 +214,7 @@ const RecordPage: React.FC = () => {
 
         {/* Browser compatibility note */}
         <div className="text-center">
-          <p className="text-xs text-on-surface-variant/50">
+          <p className="text-xs text-on-surface-variant/60">
             This app requires microphone access and works best in Chrome, Firefox, Safari, and Edge.
           </p>
         </div>
