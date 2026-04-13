@@ -28,8 +28,8 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 class UserProfileSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
     email = serializers.EmailField(source='user.email', read_only=True)
-    first_name = serializers.CharField(source='user.first_name', read_only=True)
-    last_name = serializers.CharField(source='user.last_name', read_only=True)
+    first_name = serializers.CharField(source='user.first_name', required=False)
+    last_name = serializers.CharField(source='user.last_name', required=False)
     storage_used_mb = serializers.FloatField(read_only=True)
     storage_percentage = serializers.SerializerMethodField()
 
@@ -41,6 +41,15 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'storage_used_mb', 'storage_percentage', 'created_at'
         )
         read_only_fields = ('storage_used_mb', 'storage_quota_mb', 'created_at')
+
+    def update(self, instance, validated_data):
+        user_data = validated_data.pop('user', {})
+        if user_data:
+            user = instance.user
+            for attr, value in user_data.items():
+                setattr(user, attr, value)
+            user.save()
+        return super().update(instance, validated_data)
 
     def get_storage_percentage(self, obj):
         if obj.storage_quota_mb == 0:
