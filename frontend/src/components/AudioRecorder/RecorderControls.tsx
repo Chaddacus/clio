@@ -8,7 +8,6 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAudioRecorder } from '../../hooks/useAudioRecorder';
 import WaveformDisplay from './WaveformDisplay';
-import AudioDebugPanel from './AudioDebugPanel';
 import PerformanceIndicator from '../Performance/PerformanceIndicator';
 import toast from 'react-hot-toast';
 
@@ -138,7 +137,7 @@ const RecorderControls: React.FC<RecorderControlsProps> = ({
       )}
 
       {/* Recording Status */}
-      <div className="text-center mb-6">
+      <div className="text-center mb-6" aria-live="polite">
         <div className={`font-editorial text-xl font-light mb-2 ${getRecordingStatusColor()}`} data-testid="recording-status">
           {getRecordingStatusText()}
         </div>
@@ -174,18 +173,6 @@ const RecorderControls: React.FC<RecorderControlsProps> = ({
         </div>
       )}
 
-      {/* Audio Debug Panel — dev only */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="mb-6">
-          <AudioDebugPanel
-            audioLevel={recorder.audioLevel}
-            isRecording={recorder.isRecording}
-            isPaused={recorder.isPaused}
-            recordingTime={recorder.recordingTime}
-          />
-        </div>
-      )}
-
       {/* Control Buttons */}
       <div className="flex justify-center items-center space-x-4">
         {!recorder.isRecording ? (
@@ -193,9 +180,10 @@ const RecorderControls: React.FC<RecorderControlsProps> = ({
             onClick={handleStartRecording}
             disabled={disabled}
             className="flex items-center justify-center w-24 h-24 bg-gradient-to-br from-primary to-primary-container hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed text-surface rounded-full transition-opacity duration-200 btn-record-glow"
+            aria-label={disabled ? "Allow microphone access to start recording" : "Start recording"}
             title={disabled ? "Allow microphone access to start recording" : "Start Recording"}
           >
-            <MicrophoneIcon className="h-10 w-10" />
+            <MicrophoneIcon className="h-10 w-10" aria-hidden="true" />
           </button>
         ) : (
           <>
@@ -204,18 +192,20 @@ const RecorderControls: React.FC<RecorderControlsProps> = ({
                 onClick={handlePauseRecording}
                 disabled={disabled}
                 className="flex items-center justify-center w-12 h-12 bg-surface-container-high/80 backdrop-blur-xl hover:bg-surface-container-highest disabled:opacity-40 disabled:cursor-not-allowed text-on-surface rounded-full transition-colors duration-200"
+                aria-label="Pause recording"
                 title="Pause Recording"
               >
-                <PauseIcon className="h-6 w-6" />
+                <PauseIcon className="h-6 w-6" aria-hidden="true" />
               </button>
             ) : (
               <button
                 onClick={handleResumeRecording}
                 disabled={disabled}
                 className="flex items-center justify-center w-12 h-12 bg-surface-container-high/80 backdrop-blur-xl hover:bg-surface-container-highest disabled:opacity-40 disabled:cursor-not-allowed text-secondary rounded-full transition-colors duration-200"
+                aria-label="Resume recording"
                 title="Resume Recording"
               >
-                <PlayIcon className="h-6 w-6" />
+                <PlayIcon className="h-6 w-6" aria-hidden="true" />
               </button>
             )}
 
@@ -223,9 +213,10 @@ const RecorderControls: React.FC<RecorderControlsProps> = ({
               onClick={handleStopRecording}
               disabled={disabled}
               className="flex items-center justify-center w-16 h-16 bg-surface-container-high/80 backdrop-blur-xl hover:bg-surface-container-highest disabled:opacity-40 disabled:cursor-not-allowed text-on-surface rounded-full transition-colors duration-200"
+              aria-label="Stop recording"
               title="Stop Recording"
             >
-              <StopIcon className="h-8 w-8" />
+              <StopIcon className="h-8 w-8" aria-hidden="true" />
             </button>
           </>
         )}

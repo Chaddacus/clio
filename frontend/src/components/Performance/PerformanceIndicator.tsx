@@ -40,11 +40,11 @@ const PerformanceIndicator: React.FC<PerformanceIndicatorProps> = ({
   const getStatusIcon = () => {
     switch (performanceStatus) {
       case 'good':
-        return <CheckCircleIcon className="h-4 w-4 text-green-500" />;
+        return <CheckCircleIcon className="h-4 w-4 text-secondary" />;
       case 'moderate':
-        return <InformationCircleIcon className="h-4 w-4 text-yellow-500" />;
+        return <InformationCircleIcon className="h-4 w-4 text-primary" />;
       case 'poor':
-        return <ExclamationTriangleIcon className="h-4 w-4 text-red-500" />;
+        return <ExclamationTriangleIcon className="h-4 w-4 text-error" />;
     }
   };
 
@@ -66,31 +66,33 @@ const PerformanceIndicator: React.FC<PerformanceIndicatorProps> = ({
   const getDeviceTierColor = (tier: string) => {
     switch (tier) {
       case 'high':
-        return 'text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20';
+        return 'text-secondary bg-secondary/10';
       case 'medium':
-        return 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20';
+        return 'text-primary bg-primary/10';
       case 'low':
-        return 'text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-900/20';
+        return 'text-primary-container bg-primary-container/10';
       case 'emergency':
-        return 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20';
+        return 'text-error bg-error-container/10';
       default:
-        return 'text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-900/20';
+        return 'text-on-surface-variant bg-surface-container-high';
     }
   };
 
   const recommendations = getRecommendedSettings();
 
   return (
-    <div className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden ${className}`} data-testid="performance-indicator">
+    <div className={`bg-surface-container-low rounded-lg overflow-hidden ${className}`} data-testid="performance-indicator">
       {/* Header */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+        aria-expanded={isExpanded}
+        aria-label="Toggle performance details"
+        className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-surface-container-high transition-colors"
       >
         <div className="flex items-center space-x-3">
           <div className="flex items-center space-x-2">
             {getStatusIcon()}
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <span className="text-sm font-medium text-on-surface">
               {getPerformanceStatusText()}
             </span>
           </div>
@@ -103,7 +105,7 @@ const PerformanceIndicator: React.FC<PerformanceIndicatorProps> = ({
         
         <div className="flex items-center space-x-2">
           {/* Performance metrics summary */}
-          <div className="flex items-center space-x-3 text-xs text-gray-500 dark:text-gray-400">
+          <div className="flex items-center space-x-3 text-xs text-on-surface-variant">
             <div className="flex items-center space-x-1">
               <SignalIcon className="h-3 w-3" />
               <span>{Math.round(currentMetrics.fps)}fps</span>
@@ -115,19 +117,19 @@ const PerformanceIndicator: React.FC<PerformanceIndicatorProps> = ({
           </div>
           
           {isExpanded ? (
-            <ChevronUpIcon className="h-4 w-4 text-gray-500" />
+            <ChevronUpIcon className="h-4 w-4 text-on-surface-variant" />
           ) : (
-            <ChevronDownIcon className="h-4 w-4 text-gray-500" />
+            <ChevronDownIcon className="h-4 w-4 text-on-surface-variant" />
           )}
         </div>
       </button>
       
       {/* Expanded Details */}
       {isExpanded && showDetails && (
-        <div className="px-4 pb-4 space-y-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="px-4 pb-4 space-y-4 border-t border-outline-variant/15">
           {/* Device Information */}
           <div>
-            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <h4 className="text-sm font-medium text-on-surface mb-2">
               Device Capability
             </h4>
             <div className="grid grid-cols-2 gap-3 text-xs">
@@ -139,21 +141,21 @@ const PerformanceIndicator: React.FC<PerformanceIndicatorProps> = ({
               </div>
               <div>
                 <span className="text-gray-500 dark:text-gray-400">CPU Cores:</span>
-                <div className="font-mono text-gray-700 dark:text-gray-300 mt-1">
+                <div className="font-mono text-on-surface mt-1">
                   {deviceCapability.cpuCores}
                 </div>
               </div>
               {deviceCapability.memoryGB && (
                 <div>
                   <span className="text-gray-500 dark:text-gray-400">Memory:</span>
-                  <div className="font-mono text-gray-700 dark:text-gray-300 mt-1">
+                  <div className="font-mono text-on-surface mt-1">
                     {deviceCapability.memoryGB} GB
                   </div>
                 </div>
               )}
               <div>
                 <span className="text-gray-500 dark:text-gray-400">Performance Score:</span>
-                <div className="font-mono text-gray-700 dark:text-gray-300 mt-1">
+                <div className="font-mono text-on-surface mt-1">
                   {Math.round(deviceCapability.performanceScore)}/100
                 </div>
               </div>
@@ -162,31 +164,31 @@ const PerformanceIndicator: React.FC<PerformanceIndicatorProps> = ({
           
           {/* Audio Quality Settings */}
           <div>
-            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <h4 className="text-sm font-medium text-on-surface mb-2">
               Audio Quality Settings
             </h4>
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div>
                 <span className="text-gray-500 dark:text-gray-400">Sample Rate:</span>
-                <div className="font-mono text-gray-700 dark:text-gray-300 mt-1">
+                <div className="font-mono text-on-surface mt-1">
                   {(qualitySettings.sampleRate / 1000).toFixed(1)} kHz
                 </div>
               </div>
               <div>
                 <span className="text-gray-500 dark:text-gray-400">Bitrate:</span>
-                <div className="font-mono text-gray-700 dark:text-gray-300 mt-1">
+                <div className="font-mono text-on-surface mt-1">
                   {(qualitySettings.bitrate / 1000)} kbps
                 </div>
               </div>
               <div>
                 <span className="text-gray-500 dark:text-gray-400">Codec:</span>
-                <div className="font-mono text-gray-700 dark:text-gray-300 mt-1 text-xs">
+                <div className="font-mono text-on-surface mt-1 text-xs">
                   {qualitySettings.codec.split(';')[0]}
                 </div>
               </div>
               <div>
                 <span className="text-gray-500 dark:text-gray-400">Animation FPS:</span>
-                <div className="font-mono text-gray-700 dark:text-gray-300 mt-1">
+                <div className="font-mono text-on-surface mt-1">
                   {qualitySettings.animationFPS}
                 </div>
               </div>
@@ -195,7 +197,7 @@ const PerformanceIndicator: React.FC<PerformanceIndicatorProps> = ({
           
           {/* Performance Metrics */}
           <div>
-            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <h4 className="text-sm font-medium text-on-surface mb-2">
               Current Performance
             </h4>
             <div className="space-y-2">
@@ -203,15 +205,15 @@ const PerformanceIndicator: React.FC<PerformanceIndicatorProps> = ({
               <div>
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-gray-500 dark:text-gray-400">Frame Rate</span>
-                  <span className="font-mono text-gray-700 dark:text-gray-300">
+                  <span className="font-mono text-on-surface">
                     {Math.round(currentMetrics.fps)} fps
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div className="w-full bg-surface-container-highest rounded-full h-2">
                   <div 
                     className={`h-2 rounded-full transition-all ${
-                      currentMetrics.fps >= 50 ? 'bg-green-500' :
-                      currentMetrics.fps >= 30 ? 'bg-yellow-500' : 'bg-red-500'
+                      currentMetrics.fps >= 50 ? 'bg-secondary' :
+                      currentMetrics.fps >= 30 ? 'bg-primary' : 'bg-error'
                     }`}
                     style={{ width: `${Math.min(100, (currentMetrics.fps / 60) * 100)}%` }}
                   />
@@ -222,15 +224,15 @@ const PerformanceIndicator: React.FC<PerformanceIndicatorProps> = ({
               <div>
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-gray-500 dark:text-gray-400">CPU Load</span>
-                  <span className="font-mono text-gray-700 dark:text-gray-300">
+                  <span className="font-mono text-on-surface">
                     {Math.round(currentMetrics.cpuLoad)}%
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div className="w-full bg-surface-container-highest rounded-full h-2">
                   <div 
                     className={`h-2 rounded-full transition-all ${
-                      currentMetrics.cpuLoad <= 40 ? 'bg-green-500' :
-                      currentMetrics.cpuLoad <= 70 ? 'bg-yellow-500' : 'bg-red-500'
+                      currentMetrics.cpuLoad <= 40 ? 'bg-secondary' :
+                      currentMetrics.cpuLoad <= 70 ? 'bg-primary' : 'bg-error'
                     }`}
                     style={{ width: `${currentMetrics.cpuLoad}%` }}
                   />
@@ -242,15 +244,15 @@ const PerformanceIndicator: React.FC<PerformanceIndicatorProps> = ({
                 <div>
                   <div className="flex justify-between text-xs mb-1">
                     <span className="text-gray-500 dark:text-gray-400">Audio Latency</span>
-                    <span className="font-mono text-gray-700 dark:text-gray-300">
+                    <span className="font-mono text-on-surface">
                       {currentMetrics.audioLatency.toFixed(1)}ms
                     </span>
                   </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div className="w-full bg-surface-container-highest rounded-full h-2">
                     <div 
                       className={`h-2 rounded-full transition-all ${
-                        currentMetrics.audioLatency <= 10 ? 'bg-green-500' :
-                        currentMetrics.audioLatency <= 50 ? 'bg-yellow-500' : 'bg-red-500'
+                        currentMetrics.audioLatency <= 10 ? 'bg-secondary' :
+                        currentMetrics.audioLatency <= 50 ? 'bg-primary' : 'bg-error'
                       }`}
                       style={{ width: `${Math.min(100, (currentMetrics.audioLatency / 100) * 100)}%` }}
                     />
@@ -260,7 +262,7 @@ const PerformanceIndicator: React.FC<PerformanceIndicatorProps> = ({
               
               {/* Memory Pressure Indicator */}
               {currentMetrics.memoryPressure && (
-                <div className="flex items-center space-x-2 text-xs text-red-600 dark:text-red-400">
+                <div className="flex items-center space-x-2 text-xs text-error">
                   <ExclamationTriangleIcon className="h-4 w-4" />
                   <span>Memory pressure detected</span>
                 </div>
@@ -270,27 +272,27 @@ const PerformanceIndicator: React.FC<PerformanceIndicatorProps> = ({
           
           {/* Enabled Features */}
           <div>
-            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <h4 className="text-sm font-medium text-on-surface mb-2">
               Enabled Features
             </h4>
             <div className="flex flex-wrap gap-2">
               {qualitySettings.enableVisualization && (
-                <div className="px-2 py-1 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded text-xs">
+                <div className="px-2 py-1 bg-secondary/10 text-secondary rounded-sm text-xs">
                   Audio Visualization
                 </div>
               )}
               {qualitySettings.enableSpeechRecognition && (
-                <div className="px-2 py-1 bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded text-xs">
+                <div className="px-2 py-1 bg-primary/10 text-primary rounded-sm text-xs">
                   Speech Recognition
                 </div>
               )}
               {qualitySettings.enableDebugLogging && (
-                <div className="px-2 py-1 bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 rounded text-xs">
+                <div className="px-2 py-1 bg-tertiary-container text-on-tertiary rounded-sm text-xs">
                   Debug Logging
                 </div>
               )}
               {!qualitySettings.enableVisualization && !qualitySettings.enableSpeechRecognition && (
-                <div className="px-2 py-1 bg-gray-100 dark:bg-gray-900/20 text-gray-700 dark:text-gray-400 rounded text-xs">
+                <div className="px-2 py-1 bg-surface-container-high text-on-surface-variant rounded-sm text-xs">
                   Audio Recording Only
                 </div>
               )}
@@ -300,13 +302,13 @@ const PerformanceIndicator: React.FC<PerformanceIndicatorProps> = ({
           {/* Recommendations */}
           {recommendations && recommendations.length > 0 && (
             <div>
-              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <h4 className="text-sm font-medium text-on-surface mb-2">
                 Recommendations
               </h4>
-              <ul className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
+              <ul className="space-y-1 text-xs text-on-surface-variant">
                 {recommendations.map((recommendation, index) => (
                   <li key={index} className="flex items-start space-x-2">
-                    <span className="text-blue-500 mt-1">•</span>
+                    <span className="text-primary mt-1">•</span>
                     <span>{recommendation}</span>
                   </li>
                 ))}

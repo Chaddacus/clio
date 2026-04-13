@@ -101,12 +101,13 @@ const ProfilePage: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-xs font-medium text-on-surface-variant uppercase tracking-wider mb-2">
+            <label htmlFor="first_name" className="block text-xs font-medium text-on-surface-variant uppercase tracking-wider mb-2">
               First Name
             </label>
             {isEditing ? (
               <input
                 type="text"
+                id="first_name"
                 name="first_name"
                 value={formData.first_name || ''}
                 onChange={handleInputChange}
@@ -119,12 +120,13 @@ const ProfilePage: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-on-surface-variant uppercase tracking-wider mb-2">
+            <label htmlFor="last_name" className="block text-xs font-medium text-on-surface-variant uppercase tracking-wider mb-2">
               Last Name
             </label>
             {isEditing ? (
               <input
                 type="text"
+                id="last_name"
                 name="last_name"
                 value={formData.last_name || ''}
                 onChange={handleInputChange}
@@ -162,11 +164,12 @@ const ProfilePage: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-xs font-medium text-on-surface-variant uppercase tracking-wider mb-2">
+            <label htmlFor="preferred_language" className="block text-xs font-medium text-on-surface-variant uppercase tracking-wider mb-2">
               Preferred Language
             </label>
             {isEditing ? (
               <select
+                id="preferred_language"
                 name="preferred_language"
                 value={formData.preferred_language || ''}
                 onChange={handleInputChange}

@@ -15,6 +15,7 @@ import {
 import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid';
 import { VoiceNoteListItem } from '../../types';
 import AudioPlayer from '../AudioPlayer/AudioPlayer';
+import ConfirmDialog from '../Common/ConfirmDialog';
 import { getAudioFileUrl } from '../../utils/audioUtils';
 
 // Helper function to parse Django DurationField string to seconds
@@ -60,27 +61,32 @@ const NotesGrid: React.FC<NotesGridProps> = ({
 }) => {
   const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
   const [expandedTranscriptions, setExpandedTranscriptions] = useState<Set<number>>(new Set());
+  const [deleteConfirm, setDeleteConfirm] = useState<{ noteId: number; title: string } | null>(null);
 
   const handleFavoriteClick = (e: React.MouseEvent, note: VoiceNoteListItem) => {
     e.stopPropagation();
     onFavoriteToggle?.(note.id, !note.is_favorite);
   };
 
-  const handleDeleteClick = async (e: React.MouseEvent, noteId: number) => {
+  const handleDeleteClick = (e: React.MouseEvent, note: VoiceNoteListItem) => {
     e.stopPropagation();
+    setDeleteConfirm({ noteId: note.id, title: note.title || 'Untitled Note' });
+  };
 
-    if (window.confirm('Are you sure you want to delete this note?')) {
-      setDeletingIds(prev => new Set(prev.add(noteId)));
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirm) return;
+    const { noteId } = deleteConfirm;
+    setDeleteConfirm(null);
+    setDeletingIds(prev => new Set(prev.add(noteId)));
 
-      try {
-        await onDeleteNote?.(noteId);
-      } finally {
-        setDeletingIds(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(noteId);
-          return newSet;
-        });
-      }
+    try {
+      await onDeleteNote?.(noteId);
+    } finally {
+      setDeletingIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(noteId);
+        return newSet;
+      });
     }
   };
 
@@ -197,6 +203,17 @@ const NotesGrid: React.FC<NotesGridProps> = ({
   }
 
   return (
+    <>
+    <ConfirmDialog
+      isOpen={!!deleteConfirm}
+      title="Delete voice note"
+      message={`Are you sure you want to delete "${deleteConfirm?.title}"? This action cannot be undone.`}
+      confirmLabel="Delete"
+      cancelLabel="Keep"
+      variant="danger"
+      onConfirm={handleDeleteConfirm}
+      onCancel={() => setDeleteConfirm(null)}
+    />
     <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${className}`}>
       {notes.map((note) => (
         <div
@@ -214,6 +231,7 @@ const NotesGrid: React.FC<NotesGridProps> = ({
               </h3>
               <button
                 onClick={(e) => handleFavoriteClick(e, note)}
+                aria-label={note.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
                 className="flex-shrink-0 p-1 rounded-full hover:bg-surface-container-highest transition-colors"
               >
                 {note.is_favorite ? (
@@ -281,6 +299,8 @@ const NotesGrid: React.FC<NotesGridProps> = ({
                 </h4>
                 <button
                   onClick={(e) => toggleTranscriptionExpanded(e, note.id)}
+                  aria-label={expandedTranscriptions.has(note.id) ? 'Collapse transcription' : 'Expand transcription'}
+                  aria-expanded={expandedTranscriptions.has(note.id)}
                   className="text-on-surface-variant hover:text-on-surface"
                   data-testid="transcription-toggle"
                 >
@@ -336,8 +356,9 @@ const NotesGrid: React.FC<NotesGridProps> = ({
 
               {/* Delete button */}
               <button
-                onClick={(e) => handleDeleteClick(e, note.id)}
+                onClick={(e) => handleDeleteClick(e, note)}
                 disabled={deletingIds.has(note.id)}
+                aria-label="Delete note"
                 className="text-on-surface-variant/50 hover:text-error transition-colors p-1 rounded"
                 title="Delete note"
               >
@@ -356,6 +377,7 @@ const NotesGrid: React.FC<NotesGridProps> = ({
         </div>
       ))}
     </div>
+    </>
   );
 };
 

@@ -87,13 +87,13 @@ const MicrophonePermission: React.FC<MicrophonePermissionProps> = ({
   const getPermissionIcon = () => {
     switch (permissionState) {
       case 'granted':
-        return <CheckCircleIcon className="w-5 h-5 text-green-600" />;
+        return <CheckCircleIcon className="w-5 h-5 text-secondary" />;
       case 'denied':
-        return <NoSymbolIcon className="w-5 h-5 text-red-600" />;
+        return <NoSymbolIcon className="w-5 h-5 text-error" />;
       case 'checking':
-        return <div className="w-5 h-5 animate-spin rounded-full border-2 border-gray-400 border-t-blue-600"></div>;
+        return <div className="w-5 h-5 animate-spin rounded-full border-2 border-outline-variant border-t-primary"></div>;
       default:
-        return <MicrophoneIcon className="w-5 h-5 text-gray-600" />;
+        return <MicrophoneIcon className="w-5 h-5 text-on-surface-variant" />;
     }
   };
 
@@ -134,21 +134,21 @@ const MicrophonePermission: React.FC<MicrophonePermissionProps> = ({
   }
 
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 ${className}`}>
+    <div className={`bg-surface-container-low rounded-lg p-4 ${className}`}>
       <div className="flex items-start gap-3">
         {getPermissionIcon()}
         <div className="flex-1">
           <h3 className={`font-medium ${
-            message.type === 'success' ? 'text-green-900 dark:text-green-100' :
-            message.type === 'error' ? 'text-red-900 dark:text-red-100' :
-            'text-gray-900 dark:text-gray-100'
+            message.type === 'success' ? 'text-secondary' :
+            message.type === 'error' ? 'text-error' :
+            'text-on-surface'
           }`}>
             {message.title}
           </h3>
           <p className={`text-sm mt-1 ${
-            message.type === 'success' ? 'text-green-700 dark:text-green-300' :
-            message.type === 'error' ? 'text-red-700 dark:text-red-300' :
-            'text-gray-600 dark:text-gray-400'
+            message.type === 'success' ? 'text-secondary/80' :
+            message.type === 'error' ? 'text-error/80' :
+            'text-on-surface-variant'
           }`}>
             {message.message}
           </p>
@@ -176,7 +176,7 @@ const MicrophonePermission: React.FC<MicrophonePermissionProps> = ({
               {!showHelp && permissionState === 'denied' && (
                 <button
                   onClick={() => setShowHelp(true)}
-                  className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 w-fit"
+                  className="text-sm text-primary hover:text-primary-container w-fit"
                 >
                   Need help?
                 </button>
@@ -185,14 +185,14 @@ const MicrophonePermission: React.FC<MicrophonePermissionProps> = ({
           )}
 
           {showHelp && (
-            <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+            <div className="mt-3 p-3 bg-surface-container-high rounded-lg">
               <div className="flex items-start gap-2">
-                <InformationCircleIcon className="w-4 h-4 text-blue-600 mt-0.5" />
+                <InformationCircleIcon className="w-4 h-4 text-primary mt-0.5" />
                 <div className="text-sm">
-                  <p className="font-medium text-blue-900 dark:text-blue-100 mb-2">
+                  <p className="font-medium text-on-surface mb-2">
                     How to allow microphone access:
                   </p>
-                  <ul className="space-y-1 text-blue-800 dark:text-blue-200 list-disc list-inside">
+                  <ul className="space-y-1 text-on-surface-variant list-disc list-inside">
                     <li>Look for the microphone icon in your browser's address bar</li>
                     <li>Click the icon and select "Allow" for microphone access</li>
                     <li>If blocked, click the settings icon and change microphone to "Allow"</li>
@@ -201,13 +201,13 @@ const MicrophonePermission: React.FC<MicrophonePermissionProps> = ({
                   <div className="mt-2 flex gap-2">
                     <button
                       onClick={() => window.location.reload()}
-                      className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700"
+                      className="btn-primary text-xs px-2 py-1"
                     >
                       Refresh page
                     </button>
                     <button
                       onClick={() => setShowHelp(false)}
-                      className="text-xs text-blue-600 hover:text-blue-700"
+                      className="text-xs text-primary hover:text-primary-container"
                     >
                       Close help
                     </button>
