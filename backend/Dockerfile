@@ -44,6 +44,9 @@ RUN pip install --no-cache-dir \
     django-extensions \
     rich
 
+# Copy application code
+COPY . .
+
 # Create media directory for uploaded files
 RUN mkdir -p /app/media/audio
 
