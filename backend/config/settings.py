@@ -157,7 +157,10 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://localhost:3011",
     "http://127.0.0.1:3011",
+    "https://clio.chadacus.dev",
 ]
+
+CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='https://clio.chadacus.dev', cast=lambda v: [s.strip() for s in v.split(',')])
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_EXPOSE_HEADERS = ['X-Request-ID']
@@ -179,6 +182,7 @@ CORS_ALLOW_HEADERS = [
 ]
 
 OPENAI_API_KEY = config('OPENAI_API_KEY', default='')
+OPENAI_BASE_URL = config('OPENAI_BASE_URL', default='')
 
 # Whisper Transcription Settings
 WHISPER_MODEL = config('WHISPER_MODEL', default='whisper-1')

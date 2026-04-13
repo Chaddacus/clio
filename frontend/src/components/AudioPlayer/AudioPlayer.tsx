@@ -201,7 +201,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
   if (!audioSrc) {
     return (
-      <div className={`flex items-center justify-center p-4 text-gray-500 ${className}`}>
+      <div className={`flex items-center justify-center p-4 text-on-surface-variant ${className}`}>
         <span className="text-sm">No audio available</span>
       </div>
     );
@@ -209,8 +209,8 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
   if (loadError) {
     return (
-      <div className={`bg-gray-50 dark:bg-gray-700 rounded-lg p-3 ${className}`}>
-        <div className="flex items-center justify-center space-x-2 text-red-500">
+      <div className={`bg-surface-container-low rounded-lg p-3 ${className}`}>
+        <div className="flex items-center justify-center space-x-2 text-error">
           <span className="text-sm">{loadError}</span>
         </div>
       </div>
@@ -218,7 +218,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   }
 
   return (
-    <div className={`bg-gray-50 dark:bg-gray-700 rounded-lg p-3 ${className}`}>
+    <div className={`bg-surface-container-low rounded-lg p-3 ${className}`}>
       {/* Simple HTML5 Audio with format fallbacks - browser handles all streaming */}
       <audio 
         ref={audioRef} 
@@ -247,7 +247,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
       </audio>
       
       {!compact && (
-        <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 truncate">
+        <div className="text-sm font-medium text-on-surface mb-2 truncate">
           {title}
         </div>
       )}
@@ -257,10 +257,11 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
         <button
           onClick={handlePlayPause}
           disabled={isLoading}
+          aria-label={isLoading ? 'Loading audio' : isPlaying ? 'Pause' : 'Play'}
           className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-            isLoading 
-              ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' 
-              : 'bg-primary-500 hover:bg-primary-600 text-white'
+            isLoading
+              ? 'bg-surface-container-high cursor-not-allowed'
+              : 'bg-gradient-to-r from-primary to-primary-container text-surface hover:opacity-90'
           }`}
           data-testid="audio-play-pause"
         >
@@ -282,13 +283,14 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
             value={progressPercentage}
             onChange={handleSeek}
             disabled={!duration || isLoading}
-            className="w-full h-2 bg-gray-200 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer slider"
+            aria-label="Audio playback progress"
+            className="w-full h-2 bg-surface-container-highest rounded-lg appearance-none cursor-pointer slider"
             data-testid="audio-progress"
           />
         </div>
 
         {/* Time Display */}
-        <div className="flex-shrink-0 text-xs text-gray-600 dark:text-gray-400 font-mono min-w-[80px]">
+        <div className="flex-shrink-0 text-xs text-on-surface-variant font-mono min-w-[80px]">
           {formatTime(currentTime)} / {formatTime(duration)}
         </div>
 
@@ -297,7 +299,8 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
             {/* Volume Controls */}
             <button
               onClick={handleMuteToggle}
-              className="flex-shrink-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              aria-label={isMuted ? 'Unmute' : 'Mute'}
+              className="flex-shrink-0 text-on-surface-variant hover:text-on-surface"
               data-testid="audio-mute"
             >
               {isMuted ? (
@@ -313,7 +316,8 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
               max="100"
               value={isMuted ? 0 : volume * 100}
               onChange={handleVolumeChange}
-              className="w-16 h-2 bg-gray-200 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer slider"
+              aria-label="Volume"
+              className="w-16 h-2 bg-surface-container-highest rounded-lg appearance-none cursor-pointer slider"
               data-testid="audio-volume"
             />
           </>

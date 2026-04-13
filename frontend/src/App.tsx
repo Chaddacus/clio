@@ -143,26 +143,26 @@ const App: React.FC = () => {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Router>
-          <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+          <div className="min-h-screen bg-surface">
             <AppRoutes />
             <Toaster
               position="top-right"
               toastOptions={{
                 duration: 4000,
                 style: {
-                  background: '#374151',
-                  color: '#fff',
+                  background: '#2a2a29',
+                  color: '#e5e2e0',
                 },
                 success: {
                   iconTheme: {
-                    primary: '#10B981',
-                    secondary: '#fff',
+                    primary: '#ffe2ab',
+                    secondary: '#131312',
                   },
                 },
                 error: {
                   iconTheme: {
-                    primary: '#EF4444',
-                    secondary: '#fff',
+                    primary: '#ffb4ab',
+                    secondary: '#131312',
                   },
                 },
               }}

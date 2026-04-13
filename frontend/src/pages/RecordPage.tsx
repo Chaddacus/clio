@@ -4,7 +4,6 @@ import { useMutation } from 'react-query';
 import { voiceNotesAPI } from '../services/api';
 import RecorderControls from '../components/AudioRecorder/RecorderControls';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
-import RecordingDebugger from '../components/AudioRecorder/RecordingDebugger';
 import MicrophonePermission from '../components/AudioRecorder/MicrophonePermission';
 import toast from 'react-hot-toast';
 
@@ -114,6 +113,14 @@ const RecordPage: React.FC = () => {
         </p>
       </div>
 
+      {/* Microphone Permission */}
+      {!hasPermission && (
+        <MicrophonePermission
+          onPermissionChange={handlePermissionChange}
+          onRequestPermission={requestMicrophonePermission}
+        />
+      )}
+
       {/* Recording Interface */}
       <div className="space-y-6">
         <RecorderControls
@@ -188,6 +195,7 @@ const RecordPage: React.FC = () => {
               <button
                 onClick={handleDiscard}
                 disabled={createNoteMutation.isLoading}
+                aria-label="Discard recording permanently"
                 className="btn-secondary text-error hover:text-error"
               >
                 Discard

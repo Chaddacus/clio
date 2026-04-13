@@ -1,0 +1,68 @@
+FROM node:18-bookworm-slim AS builder
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+
+# Production image — Debian slim with nginx + debug tools
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    nginx \
+    curl \
+    wget \
+    vim-tiny \
+    less \
+    procps \
+    net-tools \
+    jq \
+    dnsutils \
+    htop \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy built React app
+COPY --from=builder /app/build /usr/share/nginx/html
+
+# Nginx config for SPA routing
+RUN printf 'server {\n\
+    listen 3000;\n\
+    root /usr/share/nginx/html;\n\
+    index index.html;\n\
+\n\
+    location / {\n\
+        try_files $uri $uri/ /index.html;\n\
+    }\n\
+\n\
+    location /static/ {\n\
+        expires 1y;\n\
+        add_header Cache-Control "public, immutable";\n\
+    }\n\
+\n\
+    location /api/ {\n\
+        proxy_pass http://backend:8000;\n\
+        proxy_set_header Host $host;\n\
+        proxy_set_header X-Real-IP $remote_addr;\n\
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n\
+        proxy_set_header X-Forwarded-Proto $scheme;\n\
+        client_max_body_size 50M;\n\
+    }\n\
+\n\
+    location /media/ {\n\
+        proxy_pass http://backend:8000;\n\
+        proxy_set_header Host $host;\n\
+        proxy_set_header X-Real-IP $remote_addr;\n\
+        proxy_set_header Range $http_range;\n\
+        proxy_set_header If-Range $http_if_range;\n\
+    }\n\
+}\n' > /etc/nginx/sites-available/default
+
+EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:3000/ || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]

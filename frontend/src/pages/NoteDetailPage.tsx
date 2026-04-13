@@ -110,9 +110,10 @@ const NoteDetailPage: React.FC = () => {
       <div className="flex items-center space-x-2 text-xs text-on-surface-variant uppercase tracking-wider">
         <button
           onClick={goBackToDashboard}
+          aria-label="Back to dashboard"
           className="flex items-center space-x-1 hover:text-primary transition-colors"
         >
-          <ArrowLeftIcon className="h-4 w-4" />
+          <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" />
           <span>Dashboard</span>
         </button>
         <span>/</span>
@@ -321,9 +322,9 @@ const NoteDetailPage: React.FC = () => {
 
       {/* Re-transcribe Dialog */}
       {showRetranscribeDialog && (
-        <div className="fixed inset-0 bg-surface/80 flex items-center justify-center p-4 z-50">
-          <div className="bg-surface-container-highest rounded-lg max-w-md w-full p-6">
-            <h3 className="font-editorial text-xl font-light text-on-surface mb-4">
+        <div className="fixed inset-0 bg-surface/80 backdrop-blur-sm flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true" aria-labelledby="retranscribe-title">
+          <div className="bg-surface-container-highest rounded-lg max-w-md w-full p-6 shadow-2xl">
+            <h3 id="retranscribe-title" className="font-editorial text-xl font-light text-on-surface mb-4">
               Re-transcribe Audio
             </h3>
             <p className="text-sm text-on-surface-variant mb-4">

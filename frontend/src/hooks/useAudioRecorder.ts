@@ -312,6 +312,10 @@ export const useAudioRecorder = (options: UseAudioRecorderOptions = {}) => {
         timerRef.current = null;
       }
 
+      // Set refs immediately so the audio level loop can start
+      isRecordingRef.current = true;
+      isPausedRef.current = false;
+
       setState(prev => ({
         ...prev,
         isRecording: true,
@@ -321,19 +325,15 @@ export const useAudioRecorder = (options: UseAudioRecorderOptions = {}) => {
         recordingTime: 0,
       }));
 
-      // Start timer
+      // Start timer — use refs for recording state check to avoid stale closures
       timerRef.current = setInterval(() => {
-        setState(prev => {
-          // Only increment if we're still recording and not paused
-          if (!prev.isRecording || prev.isPaused) {
-            return prev;
-          }
-
-          return {
-            ...prev,
-            recordingTime: prev.recordingTime + 1,
-          };
-        });
+        if (!isRecordingRef.current || isPausedRef.current) {
+          return;
+        }
+        setState(prev => ({
+          ...prev,
+          recordingTime: prev.recordingTime + 1,
+        }));
       }, 1000);
 
       // Start audio level monitoring if visualization is enabled and analyzer is available
@@ -450,18 +450,15 @@ export const useAudioRecorder = (options: UseAudioRecorderOptions = {}) => {
       state.mediaRecorder.resume();
 
       // Restart timer
+      isPausedRef.current = false;
       timerRef.current = setInterval(() => {
-        setState(prev => {
-          // Only increment if we're still recording and not paused
-          if (!prev.isRecording || prev.isPaused) {
-            return prev;
-          }
-
-          return {
-            ...prev,
-            recordingTime: prev.recordingTime + 1,
-          };
-        });
+        if (!isRecordingRef.current || isPausedRef.current) {
+          return;
+        }
+        setState(prev => ({
+          ...prev,
+          recordingTime: prev.recordingTime + 1,
+        }));
       }, 1000);
 
       setState(prev => ({
@@ -471,66 +468,54 @@ export const useAudioRecorder = (options: UseAudioRecorderOptions = {}) => {
     }
   }, [state.mediaRecorder, state.isRecording, state.isPaused]);
 
+  // Track recording state in a ref so the audio loop can read it without stale closures
+  const isRecordingRef = useRef(false);
+  const isPausedRef = useRef(false);
+
+  // Keep refs in sync
+  isRecordingRef.current = state.isRecording;
+  isPausedRef.current = state.isPaused;
+
   const updateAudioLevel = useCallback(() => {
-    if (!analyzerRef.current) {
-      return;
-    }
-
-    const now = performance.now();
-    const analysisInterval = getAudioAnalysisInterval();
-
-    // Throttle based on performance settings
-    if (now - lastAudioLevelUpdate.current < analysisInterval) {
-      // Schedule next update using appropriate method
-      if (analysisInterval <= 20) {
-        // High frequency updates use requestAnimationFrame
+    const analyzer = analyzerRef.current;
+    if (!analyzer) {
+      // Analyzer not ready yet — retry
+      if (isRecordingRef.current) {
         animationFrameRef.current = requestAnimationFrame(updateAudioLevel);
-      } else {
-        // Low frequency updates use setTimeout
-        audioLevelUpdateRef.current = setTimeout(updateAudioLevel, analysisInterval);
       }
       return;
     }
 
-    lastAudioLevelUpdate.current = now;
+    if (!isRecordingRef.current) {
+      // Not recording — stop the loop
+      setState(prev => ({ ...prev, audioLevel: 0 }));
+      return;
+    }
 
-    // Get current state values directly
-    setState(prev => {
-      if (!prev.isRecording || prev.isPaused) {
-        // Stop updates if not recording
-        if (animationFrameRef.current) {
-          cancelAnimationFrame(animationFrameRef.current);
-          animationFrameRef.current = null;
-        }
-        if (audioLevelUpdateRef.current) {
-          clearTimeout(audioLevelUpdateRef.current);
-          audioLevelUpdateRef.current = null;
-        }
-        return { ...prev, audioLevel: 0 };
-      }
+    if (isPausedRef.current) {
+      // Paused — keep loop alive but don't update level
+      animationFrameRef.current = requestAnimationFrame(updateAudioLevel);
+      return;
+    }
 
-      // Get audio data
-      const dataArray = new Uint8Array(analyzerRef.current!.frequencyBinCount);
-      analyzerRef.current!.getByteFrequencyData(dataArray);
+    // Get audio data
+    const dataArray = new Uint8Array(analyzer.frequencyBinCount);
+    analyzer.getByteFrequencyData(dataArray);
 
-      // Calculate average audio level
-      const sum = dataArray.reduce((acc, value) => acc + value, 0);
-      const average = sum / dataArray.length;
-      const normalizedLevel = average / 255;
+    // Calculate average audio level
+    const sum = dataArray.reduce((acc, value) => acc + value, 0);
+    const average = sum / dataArray.length;
+    const normalizedLevel = average / 255;
 
-      // Schedule next update based on performance
-      if (analysisInterval <= 20) {
-        animationFrameRef.current = requestAnimationFrame(updateAudioLevel);
-      } else {
-        audioLevelUpdateRef.current = setTimeout(updateAudioLevel, analysisInterval);
-      }
+    // Update state with new audio level
+    setState(prev => ({
+      ...prev,
+      audioLevel: normalizedLevel,
+    }));
 
-      return {
-        ...prev,
-        audioLevel: normalizedLevel,
-      };
-    });
-  }, [shouldEnableDebugLogging, getAudioAnalysisInterval]); // Removed performanceManager
+    // Schedule next frame
+    animationFrameRef.current = requestAnimationFrame(updateAudioLevel);
+  }, []);
 
   const getVisualizationData = useCallback((): AudioVisualizationData | null => {
     if (!analyzerRef.current) return null;
@@ -580,12 +565,15 @@ export const useAudioRecorder = (options: UseAudioRecorderOptions = {}) => {
 
   // Performance Manager initialization DISABLED - no longer needed
 
-  // Cleanup on unmount
+  // Store stream in a ref so cleanup doesn't depend on state (which would kill timers on every state change)
+  const streamRef = useRef<MediaStream | null>(null);
+  streamRef.current = state.stream;
+
+  // Cleanup on unmount only (empty dependency array)
   useEffect(() => {
     return () => {
-      // Clean up without calling stopRecording to avoid duplicate cleanup
-      if (state.stream) {
-        state.stream.getTracks().forEach(track => track.stop());
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
       }
 
       if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
@@ -599,13 +587,9 @@ export const useAudioRecorder = (options: UseAudioRecorderOptions = {}) => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
-      if (audioLevelUpdateRef.current) {
-        clearTimeout(audioLevelUpdateRef.current);
-      }
-
-      // Performance Manager cleanup DISABLED
     };
-  }, [state.stream]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return {
     ...state,

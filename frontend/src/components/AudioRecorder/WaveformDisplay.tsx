@@ -26,7 +26,15 @@ const WaveformDisplay: React.FC<WaveformDisplayProps> = ({
   const barsRef = useRef<number[]>(new Array(barCount).fill(0));
   const lastUpdateTime = useRef<number>(0);
   const frameSkipCounter = useRef<number>(0);
-  
+
+  // Use refs for values that change frequently to avoid effect re-runs
+  const audioLevelRef = useRef(audioLevel);
+  const isRecordingRef = useRef(isRecording);
+  const isPausedRef = useRef(isPaused);
+  audioLevelRef.current = audioLevel;
+  isRecordingRef.current = isRecording;
+  isPausedRef.current = isPaused;
+
   // Get performance-aware settings
   const shouldEnableOptimizations = enablePerformanceOptimizations && performanceManager.qualitySettings;
   const targetFPS = shouldEnableOptimizations ? performanceManager.qualitySettings?.animationFPS || 30 : 60;
@@ -73,21 +81,25 @@ const WaveformDisplay: React.FC<WaveformDisplayProps> = ({
       const barSpacing = barWidth * 0.1;
       const actualBarWidth = barWidth - barSpacing;
 
+      // Read current values from refs (avoids stale closures)
+      const currentAudioLevel = audioLevelRef.current;
+      const currentIsRecording = isRecordingRef.current;
+      const currentIsPaused = isPausedRef.current;
+
       // Update bars based on audio level
-      if (isRecording && !isPaused) {
+      if (currentIsRecording && !currentIsPaused) {
         // Shift existing bars to the left
         for (let i = 0; i < barCount - 1; i++) {
           barsRef.current[i] = barsRef.current[i + 1];
         }
-        
+
         // Add new bar based on current audio level
-        // Always show some activity when recording, even if audio level is low
-        const baseLevel = Math.max(0.05, audioLevel * 0.9);
-        const randomVariation = isHighPerformance ? Math.random() * 0.1 : 0.05; // Reduced randomness for low performance
+        const baseLevel = Math.max(0.05, currentAudioLevel * 0.9);
+        const randomVariation = isHighPerformance ? Math.random() * 0.1 : 0.05;
         const newBarHeight = Math.min(1.0, baseLevel + randomVariation);
         barsRef.current[barCount - 1] = newBarHeight;
-        
-      } else if (!isRecording || isPaused) {
+
+      } else if (!currentIsRecording || currentIsPaused) {
         // Gradually fade out bars when not recording
         for (let i = 0; i < barCount; i++) {
           barsRef.current[i] *= 0.95;
@@ -103,10 +115,10 @@ const WaveformDisplay: React.FC<WaveformDisplayProps> = ({
         // Color gradient based on bar height and position
         const intensity = barsRef.current[i];
         let color;
-        
-        if (isPaused) {
+
+        if (currentIsPaused) {
           color = `rgba(255, 226, 171, ${intensity})`; // secondary (#ffe2ab)
-        } else if (isRecording) {
+        } else if (currentIsRecording) {
           if (intensity > 0.7) {
             color = `rgba(255, 127, 80, ${intensity})`; // primary-container (#ff7f50)
           } else if (intensity > 0.4) {
@@ -122,7 +134,7 @@ const WaveformDisplay: React.FC<WaveformDisplayProps> = ({
         ctx.fillRect(x, y, actualBarWidth, barHeight);
 
         // Add glow effect for active recording (only on high performance)
-        if (isHighPerformance && isRecording && !isPaused && intensity > 0.5) {
+        if (isHighPerformance && currentIsRecording && !currentIsPaused && intensity > 0.5) {
           ctx.shadowColor = color;
           ctx.shadowBlur = 10;
           ctx.fillRect(x, y, actualBarWidth, barHeight);
@@ -130,7 +142,7 @@ const WaveformDisplay: React.FC<WaveformDisplayProps> = ({
         }
       }
 
-      if (isRecording || barsRef.current.some(bar => bar > 0.01)) {
+      if (currentIsRecording || barsRef.current.some(bar => bar > 0.01)) {
         animationFrameRef.current = requestAnimationFrame(draw);
       } else if (shouldEnableOptimizations) {
         // Clean up animation frame when not needed to save resources
@@ -155,13 +167,14 @@ const WaveformDisplay: React.FC<WaveformDisplayProps> = ({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [audioLevel, isRecording, isPaused, height, barCount, shouldEnableOptimizations, targetFPS, performanceStatus, performanceManager]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [height, barCount, shouldEnableOptimizations, targetFPS, performanceStatus]);
 
   return (
     <div className={`relative ${className}`} data-testid="waveform-display">
       <canvas
         ref={canvasRef}
-        className="w-full rounded-lg bg-gray-800"
+        className="w-full rounded-lg bg-surface-container-lowest"
         style={{ height: `${height}px` }}
         data-testid="waveform-canvas"
       />
@@ -170,16 +183,16 @@ const WaveformDisplay: React.FC<WaveformDisplayProps> = ({
       {isRecording && (
         <div className="absolute top-2 right-2">
           <div className={`w-3 h-3 rounded-full ${
-            isPaused 
-              ? 'bg-yellow-500 animate-pulse' 
-              : 'bg-red-500 animate-pulse-fast'
+            isPaused
+              ? 'bg-secondary animate-pulse'
+              : 'bg-error animate-pulse-fast'
           }`} />
         </div>
       )}
       
       {/* Center line */}
       <div 
-        className="absolute left-0 right-0 border-t border-gray-600 opacity-30" 
+        className="absolute left-0 right-0 border-t border-outline-variant opacity-30" 
         style={{ top: `${height / 2}px` }}
       />
     </div>

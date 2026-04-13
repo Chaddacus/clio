@@ -38,27 +38,41 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-surface flex">
+      {/* Skip navigation link */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:bg-primary focus:text-surface focus:rounded-lg focus:text-sm focus:font-medium"
+      >
+        Skip to main content
+      </a>
+
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-surface/75 z-20 lg:hidden"
           onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
         />
       )}
 
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-30 w-64 bg-surface-container-low transform ${
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      } lg:translate-x-0 lg:static lg:inset-0 transition-transform duration-300 ease-in-out flex flex-col`}>
+      <aside
+        role="navigation"
+        aria-label="Main navigation"
+        className={`fixed inset-y-0 left-0 z-30 w-64 bg-surface-container-low transform ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } lg:translate-x-0 lg:static lg:inset-0 transition-transform duration-300 ease-in-out flex flex-col`}
+      >
 
         {/* Sidebar header */}
         <div className="flex items-center justify-between h-16 px-6 flex-shrink-0">
           <h1 className="font-editorial text-2xl font-light text-on-surface tracking-wide">Clio</h1>
           <button
             onClick={() => setSidebarOpen(false)}
+            aria-label="Close navigation menu"
             className="lg:hidden p-1 rounded-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"
           >
-            <XMarkIcon className="h-6 w-6" />
+            <XMarkIcon className="h-6 w-6" aria-hidden="true" />
           </button>
         </div>
 
@@ -74,13 +88,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   key={item.name}
                   to={item.href}
                   onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center px-3 py-3 text-sm font-sans font-medium rounded-lg transition-colors ${
+                  className={`flex items-center px-3 py-3 text-sm font-sans font-medium rounded-lg transition-colors relative ${
                     active
                       ? 'bg-surface-container-high text-on-surface'
                       : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
                   }`}
+                  aria-current={active ? 'page' : undefined}
                 >
-                  <Icon className="mr-3 h-5 w-5" />
+                  {active && (
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-primary-container rounded-full" aria-hidden="true" />
+                  )}
+                  <Icon className="mr-3 h-5 w-5" aria-hidden="true" />
                   {item.name}
                 </Link>
               );
@@ -109,23 +127,24 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             onClick={handleLogout}
             className="flex items-center w-full px-3 py-2 text-sm font-medium text-on-surface-variant rounded-lg hover:bg-surface-container-high hover:text-on-surface transition-colors"
           >
-            <ArrowRightOnRectangleIcon className="mr-3 h-5 w-5" />
+            <ArrowRightOnRectangleIcon className="mr-3 h-5 w-5" aria-hidden="true" />
             Sign out
           </button>
         </div>
-      </div>
+      </aside>
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-h-screen lg:ml-0">
         {/* Top header for mobile */}
-        <header className="lg:hidden bg-surface-container-low">
+        <header role="banner" className="lg:hidden bg-surface-container-low">
           <div className="px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
               <button
                 onClick={() => setSidebarOpen(true)}
+                aria-label="Open navigation menu"
                 className="p-2 rounded-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
               >
-                <Bars3Icon className="h-6 w-6" />
+                <Bars3Icon className="h-6 w-6" aria-hidden="true" />
               </button>
               <h1 className="font-editorial text-xl font-light text-on-surface">Clio</h1>
               <div className="w-10" /> {/* Spacer for centering */}
@@ -134,7 +153,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-surface">
+        <main id="main-content" role="main" className="flex-1 p-4 sm:p-6 lg:p-8 bg-surface">
           {children}
         </main>
       </div>

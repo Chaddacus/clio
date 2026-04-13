@@ -52,10 +52,13 @@ _openai_circuit = CircuitBreaker()
 
 class WhisperTranscriptionService:
     def __init__(self) -> None:
-        if not settings.OPENAI_API_KEY:
-            raise ValueError("OpenAI API key not configured")
+        base_url = getattr(settings, 'OPENAI_BASE_URL', '') or None
+        api_key = settings.OPENAI_API_KEY or 'not-needed'
 
-        self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        if not base_url and not settings.OPENAI_API_KEY:
+            raise ValueError("OpenAI API key or base URL not configured")
+
+        self.client = OpenAI(api_key=api_key, base_url=base_url) if base_url else OpenAI(api_key=api_key)
         self.model = getattr(settings, 'WHISPER_MODEL', 'whisper-1')
         self.temperature = getattr(settings, 'WHISPER_TEMPERATURE', 0)
         self.format_text = getattr(settings, 'WHISPER_FORMAT_TEXT', True)

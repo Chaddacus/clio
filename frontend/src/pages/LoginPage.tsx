@@ -43,7 +43,7 @@ const LoginPage: React.FC = () => {
           {/* Form */}
           <form className="space-y-6" onSubmit={handleSubmit}>
             {error && (
-              <div className="bg-error-container/20 rounded-md p-4">
+              <div className="bg-error-container/20 rounded-md p-4" role="alert" aria-live="assertive">
                 <div className="text-sm text-error">
                   {error}
                 </div>
@@ -105,7 +105,7 @@ const LoginPage: React.FC = () => {
                 Don't have an account?{' '}
                 <Link
                   to="/register"
-                  className="text-on-surface-variant hover:text-primary transition-colors"
+                  className="text-primary hover:text-primary-container transition-colors border-b border-primary/30 hover:border-primary-container"
                 >
                   Create one
                 </Link>
