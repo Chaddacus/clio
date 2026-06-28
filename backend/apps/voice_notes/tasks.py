@@ -26,6 +26,9 @@ def transcribe_voice_note_task(self, note_id: int, language: str = 'auto') -> No
         duration = AudioProcessingService.get_audio_duration(note.audio_file)
         if duration:
             note.duration = timedelta(seconds=duration)
+            # Persist duration before the (slow) transcription call so the UI can
+            # show the clip length and a meaningful estimate while it processes.
+            note.save(update_fields=['duration'])
 
         result = transcription_service.transcribe_audio(note.audio_file, language)
 

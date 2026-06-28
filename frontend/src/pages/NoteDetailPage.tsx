@@ -133,11 +133,25 @@ const NoteDetailPage: React.FC = () => {
     () => voiceNotesAPI.get(noteId),
     {
       enabled: !!noteId,
+      // Poll while transcription is in flight so the page updates itself; stop
+      // once it reaches a terminal state.
+      refetchInterval: (data) => (data?.data?.status === 'processing' ? 2500 : false),
       onError: () => {
         toast.error('Failed to load voice note');
       },
     }
   );
+
+  // Elapsed-time ticker for the processing indicator.
+  const isProcessing = noteData?.data?.status === 'processing';
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    if (!isProcessing) return;
+    const start = Date.now();
+    setElapsed(0);
+    const timer = setInterval(() => setElapsed((Date.now() - start) / 1000), 500);
+    return () => clearInterval(timer);
+  }, [isProcessing]);
 
   const { data: foldersData } = useQuery(['folders'], () => foldersAPI.list());
   const folders = foldersData?.data || [];
@@ -349,14 +363,40 @@ const NoteDetailPage: React.FC = () => {
           )}
         </div>
 
-        {note.status === 'processing' && (
-          <div className="flex items-center justify-center py-8">
-            <LoadingSpinner className="mr-2" />
-            <span className="text-on-surface-variant text-sm">
-              Transcribing your audio... This may take a few minutes.
-            </span>
-          </div>
-        )}
+        {note.status === 'processing' && (() => {
+          // Optimistic progress: ramps smoothly toward 90% and completes when
+          // the poll reports done. Deepgram's batch API gives no true %, so this
+          // conveys activity + elapsed time without claiming a false figure.
+          const progress = Math.min(90, 90 * (1 - Math.exp(-elapsed / 8)));
+          const clip = note.duration ? formatTimestamp(parseDurationToSeconds(note.duration)) : null;
+          return (
+            <div className="py-6">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-on-surface">Transcribing your audio…</span>
+                <span className="text-xs font-mono text-on-surface-variant uppercase tracking-wider">
+                  {formatTimestamp(elapsed)} elapsed
+                </span>
+              </div>
+              <div
+                className="w-full bg-surface-container-lowest rounded-full h-2 overflow-hidden"
+                role="progressbar"
+                aria-valuenow={Math.round(progress)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Transcription progress"
+              >
+                <div
+                  className="bg-gradient-to-r from-primary to-primary-container h-2 rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <p className="text-xs text-on-surface-variant mt-3">
+                Transcribing speech and identifying speakers{clip ? ` in your ${clip} recording` : ''}.
+                Short clips finish in a few seconds; longer recordings take a bit more.
+              </p>
+            </div>
+          );
+        })()}
 
         {note.status === 'failed' && (
           <div className="text-center py-8">
