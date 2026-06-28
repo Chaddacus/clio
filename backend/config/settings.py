@@ -211,6 +211,13 @@ DEEPGRAM_API_KEY = config('DEEPGRAM_API_KEY', default='')
 DEEPGRAM_MODEL = config('DEEPGRAM_MODEL', default='nova-3')
 DEEPGRAM_BASE_URL = config('DEEPGRAM_BASE_URL', default='https://api.deepgram.com')
 
+# Self-heal support pipeline. When GITHUB_TOKEN + GITHUB_REPO are set, a
+# sufficient support request is turned into a `codex`-labelled GitHub issue;
+# otherwise issue creation is a logged no-op (the request stays 'submitted').
+GITHUB_TOKEN = config('GITHUB_TOKEN', default='')
+GITHUB_REPO = config('GITHUB_REPO', default='Chaddacus/clio')
+CODEX_LABEL = config('CODEX_LABEL', default='codex')
+
 AUDIO_UPLOAD_MAX_SIZE = 50 * 1024 * 1024  # 50MB
 AUDIO_ALLOWED_FORMATS = ['wav', 'mp3', 'ogg', 'webm', 'm4a']
 
