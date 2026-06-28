@@ -15,10 +15,11 @@ from rest_framework.response import Response
 from apps.core.services import AudioProcessingService, get_transcription_service
 from apps.users.models import UserProfile
 
-from .models import Folder, Tag, TranscriptionSegment, VoiceNote
+from .models import Folder, Speaker, Tag, TranscriptionSegment, VoiceNote
 from .serializers import (
     AudioTranscriptionSerializer,
     FolderSerializer,
+    SpeakerSerializer,
     TagSerializer,
     VoiceNoteCreateSerializer,
     VoiceNoteDetailSerializer,
@@ -29,22 +30,52 @@ logger = logging.getLogger(__name__)
 
 
 def create_segments_for_note(voice_note: VoiceNote, segments: list) -> None:
-    """Shared helper to bulk-create TranscriptionSegment objects from OpenAI response."""
+    """Bulk-create TranscriptionSegment rows from a transcription result.
+
+    Works for both providers: Whisper segments expose ``avg_logprob`` and no
+    speaker, Deepgram segments expose ``confidence`` and a ``speaker`` label.
+    After persisting segments, the speaker roster is re-synced from the
+    distinct labels so diarized speakers can be renamed.
+    """
     segment_objects = []
     for segment_data in segments:
         try:
+            confidence = getattr(segment_data, 'confidence', None)
+            if confidence is None:
+                confidence = getattr(segment_data, 'avg_logprob', None)
             segment_objects.append(TranscriptionSegment(
                 voice_note=voice_note,
                 start_time=getattr(segment_data, 'start', 0),
                 end_time=getattr(segment_data, 'end', 0),
                 text=getattr(segment_data, 'text', ''),
-                confidence=getattr(segment_data, 'avg_logprob', None),
+                confidence=confidence,
+                speaker_id=getattr(segment_data, 'speaker', '') or '',
             ))
         except Exception:
             logger.warning("Skipping malformed segment", exc_info=True)
             continue
     if segment_objects:
         TranscriptionSegment.objects.bulk_create(segment_objects)
+    _sync_speakers_for_note(voice_note)
+
+
+def _sync_speakers_for_note(voice_note: VoiceNote) -> None:
+    """Rebuild the note's Speaker roster from the distinct segment labels.
+
+    Idempotent: clears existing speakers and recreates one row per distinct
+    label, defaulting the display name to the label. Preserves no prior renames
+    because it only runs on (re)transcription, when segments are rewritten.
+    """
+    # set() dedupes in Python: a queryset .distinct() is defeated by the model's
+    # default ordering ('start_time'), which DISTINCT would fold into the key.
+    labels = sorted(set(
+        voice_note.segments.exclude(speaker_id='').values_list('speaker_id', flat=True)
+    ))
+    voice_note.speakers.all().delete()
+    if labels:
+        Speaker.objects.bulk_create([
+            Speaker(voice_note=voice_note, label=label, name=label) for label in labels
+        ])
 
 
 def _update_storage(user: Any, delta_bytes: int) -> None:
@@ -117,7 +148,7 @@ class VoiceNoteDetailView(generics.RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         return VoiceNote.objects.filter(
             user=self.request.user
-        ).select_related('user').prefetch_related('tags', 'segments')
+        ).select_related('user').prefetch_related('tags', 'segments', 'speakers')
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -167,6 +198,18 @@ class FolderDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         return Folder.objects.filter(user=self.request.user)
+
+
+class SpeakerDetailView(generics.RetrieveUpdateAPIView):
+    """Rename a diarized speaker. Scoped to speakers of the user's own notes;
+    a foreign speaker id resolves to 404. Only the display name is editable.
+    """
+    serializer_class = SpeakerSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['get', 'patch', 'head', 'options']
+
+    def get_queryset(self):
+        return Speaker.objects.filter(voice_note__user=self.request.user)
 
 
 @api_view(['POST'])

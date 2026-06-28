@@ -124,6 +124,29 @@ class VoiceNote(models.Model):
         ]
 
 
+class Speaker(models.Model):
+    """A diarized speaker within a voice note, with an editable display name.
+
+    Diarization assigns each segment a label ("Speaker 1", "Speaker 2", ...).
+    This row maps that immutable label to a user-editable display name so the
+    user can rename "Speaker 1" to "Sam" after the fact. Renaming updates the
+    name here; segments keep their original label and join through it.
+    """
+
+    voice_note = models.ForeignKey(VoiceNote, on_delete=models.CASCADE, related_name='speakers')
+    label = models.CharField(max_length=50, help_text="Original diarization label, e.g. 'Speaker 1'")
+    name = models.CharField(max_length=100, help_text="Editable display name")
+
+    def __str__(self):
+        return f"{self.voice_note_id}:{self.label} -> {self.name}"
+
+    class Meta:
+        ordering = ['label']
+        constraints = [
+            models.UniqueConstraint(fields=['voice_note', 'label'], name='unique_speaker_per_note'),
+        ]
+
+
 class TranscriptionSegment(models.Model):
     voice_note = models.ForeignKey(VoiceNote, on_delete=models.CASCADE, related_name='segments')
     start_time = models.FloatField(help_text="Segment start time in seconds")

@@ -65,6 +65,12 @@ export interface TranscriptionSegment {
   speaker_id: string;
 }
 
+export interface Speaker {
+  id: number;
+  label: string;
+  name: string;
+}
+
 export interface VoiceNote {
   id: number;
   title: string;
@@ -83,6 +89,7 @@ export interface VoiceNote {
   folder: number | null;
   folder_name: string | null;
   segments: TranscriptionSegment[];
+  speakers: Speaker[];
   created_at: string;
   updated_at: string;
 }

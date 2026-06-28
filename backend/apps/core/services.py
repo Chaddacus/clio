@@ -7,8 +7,10 @@ import tempfile
 import threading
 import time
 import wave
+from types import SimpleNamespace
 from typing import Any, Optional
 
+import requests
 from django.conf import settings
 from openai import OpenAI
 
@@ -48,6 +50,7 @@ class CircuitBreaker:
 
 
 _openai_circuit = CircuitBreaker()
+_deepgram_circuit = CircuitBreaker()
 
 
 class WhisperTranscriptionService:
@@ -181,8 +184,153 @@ class WhisperTranscriptionService:
         return sum(confidences) / len(confidences) if confidences else None
 
 
-def get_transcription_service() -> WhisperTranscriptionService:
-    """Factory function for transcription service. Override in tests."""
+class DeepgramTranscriptionService:
+    """Transcription + speaker diarization via Deepgram's pre-recorded API.
+
+    Deepgram returns speaker labels (Whisper does not). We send the raw audio
+    bytes to POST /v1/listen with diarize+utterances, then turn each utterance
+    (a contiguous single-speaker turn) into a segment carrying a ``speaker``
+    label so the rest of the pipeline can persist and rename speakers.
+    """
+
+    EXT_MIME = {
+        'wav': 'audio/wav', 'mp3': 'audio/mpeg', 'ogg': 'audio/ogg',
+        'webm': 'audio/webm', 'm4a': 'audio/mp4', 'flac': 'audio/flac',
+    }
+
+    def __init__(self) -> None:
+        self.api_key = settings.DEEPGRAM_API_KEY
+        if not self.api_key:
+            raise ValueError("DEEPGRAM_API_KEY not configured")
+        self.base_url = getattr(settings, 'DEEPGRAM_BASE_URL', 'https://api.deepgram.com').rstrip('/')
+        self.model = getattr(settings, 'DEEPGRAM_MODEL', 'nova-3')
+        logger.info("DeepgramTranscriptionService initialized, model=%s", self.model)
+
+    def transcribe_audio(self, audio_file: Any, language: str = 'auto') -> dict[str, Any]:
+        try:
+            file_name = getattr(audio_file, 'name', 'audio_file')
+            logger.info("Starting Deepgram transcription for %s", file_name)
+
+            audio_bytes = self._read_bytes(audio_file)
+            if not audio_bytes:
+                raise ValueError("Audio file is empty")
+
+            payload = self._post_with_retry(audio_bytes, self._content_type(file_name), language)
+
+            results = payload.get('results', {}) or {}
+            channels = results.get('channels', []) or []
+            channel0 = channels[0] if channels else {}
+            alternatives = channel0.get('alternatives', []) or []
+            alt = alternatives[0] if alternatives else {}
+
+            text = alt.get('transcript', '') or ''
+            overall_confidence = alt.get('confidence')
+            detected = channel0.get('detected_language')
+            lang = (detected or (language if language != 'auto' else 'auto') or 'auto').split('-')[0][:10]
+            duration = (payload.get('metadata', {}) or {}).get('duration')
+
+            segments = [
+                SimpleNamespace(
+                    start=utt.get('start', 0.0),
+                    end=utt.get('end', 0.0),
+                    text=(utt.get('transcript', '') or '').strip(),
+                    speaker=f"Speaker {int(utt.get('speaker', 0)) + 1}",
+                    confidence=utt.get('confidence'),
+                )
+                for utt in (results.get('utterances', []) or [])
+                if (utt.get('transcript', '') or '').strip()
+            ]
+
+            logger.info(
+                "Deepgram transcription complete: %d chars, language=%s, %d utterances",
+                len(text), lang, len(segments),
+            )
+
+            return {
+                'success': True,
+                'text': text,
+                'language': lang,
+                'duration': duration,
+                'segments': segments,
+                'confidence_score': overall_confidence,
+            }
+
+        except Exception as e:
+            logger.error("Deepgram transcription failed: %s", e, exc_info=True)
+            return {
+                'success': False,
+                'error': 'Transcription service encountered an error. Please try again.',
+                'transcription': '',
+                'language': 'auto',
+                'duration': None,
+                'segments': [],
+                'confidence': None,
+            }
+
+    def _content_type(self, file_name: str) -> str:
+        ext = file_name.rsplit('.', 1)[-1].lower() if '.' in file_name else ''
+        return self.EXT_MIME.get(ext, 'audio/webm')
+
+    @staticmethod
+    def _read_bytes(audio_file: Any) -> bytes:
+        if hasattr(audio_file, 'chunks'):
+            return b''.join(audio_file.chunks())
+        audio_file.seek(0)
+        return audio_file.read()
+
+    def _post_with_retry(self, audio_bytes: bytes, content_type: str, language: str) -> dict:
+        if _deepgram_circuit.is_open():
+            raise RuntimeError("Circuit breaker open: Deepgram API unavailable")
+
+        params = {
+            'model': self.model,
+            'diarize': 'true',
+            'utterances': 'true',
+            'punctuate': 'true',
+            'smart_format': 'true',
+        }
+        if language == 'auto':
+            params['detect_language'] = 'true'
+        else:
+            params['language'] = language
+
+        headers = {'Authorization': f'Token {self.api_key}', 'Content-Type': content_type}
+        url = f"{self.base_url}/v1/listen"
+
+        last_error: Optional[Exception] = None
+        for attempt in range(MAX_RETRIES + 1):
+            try:
+                response = requests.post(url, params=params, data=audio_bytes, headers=headers, timeout=300)
+                if response.status_code >= 500:
+                    raise RuntimeError(f"Deepgram server error: {response.status_code}")
+                response.raise_for_status()
+                _deepgram_circuit.record_success()
+                return response.json()
+            except Exception as e:
+                last_error = e
+                status_code = getattr(getattr(e, 'response', None), 'status_code', 0) or 0
+                is_transient = isinstance(e, (requests.Timeout, requests.ConnectionError)) or status_code >= 500
+                if is_transient and attempt < MAX_RETRIES:
+                    wait = RETRY_BACKOFF_SECONDS * (attempt + 1)
+                    logger.warning("Transient Deepgram error on attempt %d, retrying in %ds: %s", attempt + 1, wait, e)
+                    time.sleep(wait)
+                else:
+                    _deepgram_circuit.record_failure()
+                    raise
+        if last_error is not None:
+            _deepgram_circuit.record_failure()
+            raise last_error
+        raise RuntimeError("Retry loop exited unexpectedly")
+
+
+def get_transcription_service():
+    """Factory function for transcription service. Override in tests.
+
+    Routes to Deepgram (transcribe + speaker diarization) when DEEPGRAM_API_KEY
+    is configured; otherwise falls back to the self-hosted Whisper server.
+    """
+    if getattr(settings, 'DEEPGRAM_API_KEY', ''):
+        return DeepgramTranscriptionService()
     return WhisperTranscriptionService()
 
 

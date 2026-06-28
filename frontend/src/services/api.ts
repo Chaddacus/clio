@@ -2,7 +2,7 @@ import axios, { AxiosResponse } from 'axios';
 import {
   User, AuthTokens, RegisterData, LoginData, UserProfile,
   VoiceNote, VoiceNoteListItem, CreateVoiceNoteData, UpdateVoiceNoteData,
-  Tag, Folder, PaginatedResponse, UserStats, TranscriptionResult, ApiResponse,
+  Tag, Folder, Speaker, PaginatedResponse, UserStats, TranscriptionResult, ApiResponse,
   VoiceNotesFilters
 } from '../types';
 
@@ -171,6 +171,12 @@ export const foldersAPI = {
 
   delete: (id: number): Promise<AxiosResponse<void>> =>
     api.delete(`/folders/${id}/`),
+};
+
+// Speakers API (rename diarized speakers)
+export const speakersAPI = {
+  update: (id: number, data: { name: string }): Promise<AxiosResponse<Speaker>> =>
+    api.patch(`/speakers/${id}/`, data),
 };
 
 export default api;

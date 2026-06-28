@@ -45,6 +45,8 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY:-not-needed}
       - OPENAI_BASE_URL=${OPENAI_BASE_URL:-}
       - WHISPER_MODEL=${WHISPER_MODEL:-whisper-1}
+      - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY:-}
+      - DEEPGRAM_MODEL=${DEEPGRAM_MODEL:-nova-3}
       - ALLOWED_HOSTS=localhost,127.0.0.1,backend
       - REDIS_URL=redis://redis:6379/0
       - PYTHONDONTWRITEBYTECODE=1
@@ -105,6 +107,8 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY:-not-needed}
       - OPENAI_BASE_URL=${OPENAI_BASE_URL:-}
       - WHISPER_MODEL=${WHISPER_MODEL:-whisper-1}
+      - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY:-}
+      - DEEPGRAM_MODEL=${DEEPGRAM_MODEL:-nova-3}
       - REDIS_URL=redis://redis:6379/0
     volumes:
       - ./backend:/app

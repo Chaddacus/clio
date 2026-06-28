@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Folder, Tag, TranscriptionSegment, VoiceNote
+from .models import Folder, Speaker, Tag, TranscriptionSegment, VoiceNote
 
 
 class UserScopedTagField(serializers.PrimaryKeyRelatedField):
@@ -57,6 +57,19 @@ class TagSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'created_at')
 
 
+class SpeakerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Speaker
+        fields = ('id', 'label', 'name')
+        read_only_fields = ('id', 'label')
+
+    def validate_name(self, value):
+        name = (value or '').strip()
+        if not name:
+            raise serializers.ValidationError("Speaker name cannot be empty.")
+        return name
+
+
 class TranscriptionSegmentSerializer(serializers.ModelSerializer):
     duration = serializers.ReadOnlyField()
 
@@ -109,6 +122,7 @@ class VoiceNoteDetailSerializer(serializers.ModelSerializer):
         required=False
     )
     segments = TranscriptionSegmentSerializer(many=True, read_only=True)
+    speakers = SpeakerSerializer(many=True, read_only=True)
     file_size_mb = serializers.ReadOnlyField()
     username = serializers.CharField(source='user.username', read_only=True)
     audio_url = serializers.SerializerMethodField()
@@ -121,12 +135,12 @@ class VoiceNoteDetailSerializer(serializers.ModelSerializer):
             'id', 'title', 'transcription', 'username', 'audio_file', 'audio_url',
             'duration', 'file_size_mb', 'language_detected', 'confidence_score',
             'status', 'error_message', 'is_favorite', 'tags', 'tag_ids',
-            'folder', 'folder_name', 'segments',
+            'folder', 'folder_name', 'segments', 'speakers',
             'created_at', 'updated_at'
         )
         read_only_fields = (
             'id', 'username', 'file_size_mb', 'language_detected',
-            'confidence_score', 'status', 'error_message', 'segments',
+            'confidence_score', 'status', 'error_message', 'segments', 'speakers',
             'created_at', 'updated_at', 'audio_url'
         )
 

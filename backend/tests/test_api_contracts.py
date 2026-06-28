@@ -68,12 +68,13 @@ class TestRetranscribeValidation:
 
 
 class TestTranscriptionServiceFactory:
-    def test_get_transcription_service_returns_whisper(self):
-        """get_transcription_service() returns a WhisperTranscriptionService instance."""
+    def test_get_transcription_service_returns_whisper(self, settings):
+        """With no Deepgram key configured, the factory returns Whisper."""
         import unittest.mock as mock
 
         from apps.core.services import WhisperTranscriptionService, get_transcription_service
 
+        settings.DEEPGRAM_API_KEY = ''
         with mock.patch.object(WhisperTranscriptionService, '__init__', return_value=None):
             service = get_transcription_service()
         assert isinstance(service, WhisperTranscriptionService)
