@@ -8,18 +8,30 @@ from django.http import (
     FileResponse,
     Http404,
     HttpResponseForbidden,
+    HttpResponseNotFound,
     StreamingHttpResponse,
 )
 from django.shortcuts import get_object_or_404
-from django.utils.decorators import method_decorator
 from django.views import View
-from django.views.decorators.cache import cache_control
 from django.views.decorators.http import require_GET
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 
 from apps.core.auth import CookieJWTAuthentication
 from apps.voice_notes.models import VoiceNote
+
+
+def _uncacheable(response):
+    """Mark a deny/error response non-cacheable.
+
+    These media endpoints sit behind a CDN (Cloudflare) that keys its cache on
+    URL, not on the auth cookie. Without no-store, a single unauthenticated or
+    cross-user probe (403/404) gets cached at the edge and is then served back
+    to the legitimate owner — denying them their own audio. no-store stops the
+    shared cache from ever storing a per-request authz decision.
+    """
+    response['Cache-Control'] = 'no-store'
+    return response
 
 
 def authenticate_cookie_user(request):
@@ -121,28 +133,27 @@ class AudioFileView(View):
         """Format timestamp for HTTP headers"""
         return formatdate(timestamp, usegmt=True)
 
-    @method_decorator(cache_control(max_age=86400))  # Cache for 24 hours (optimized for large files)
     def get(self, request, path):
         # Construct the full file path
         file_path = os.path.join(settings.MEDIA_ROOT, 'audio', path)
 
         # Security check - ensure the path is within MEDIA_ROOT
         if not os.path.abspath(file_path).startswith(os.path.abspath(settings.MEDIA_ROOT)):
-            raise Http404("Invalid file path")
+            return _uncacheable(HttpResponseNotFound("Invalid file path"))
 
         # AuthN: require a valid access_token cookie.
         user = authenticate_cookie_user(request)
         if user is None:
-            return HttpResponseForbidden("Authentication required")
+            return _uncacheable(HttpResponseForbidden("Authentication required"))
 
         # AuthZ: the requester must own the voice note this audio belongs to.
         # audio_file is stored relative to MEDIA_ROOT as 'audio/<user_id>/<file>'.
         if not VoiceNote.objects.filter(audio_file=f'audio/{path}', user=user).exists():
-            raise Http404("File not found")
+            return _uncacheable(HttpResponseNotFound("File not found"))
 
         # Check if file exists
         if not os.path.exists(file_path):
-            raise Http404("File not found")
+            return _uncacheable(HttpResponseNotFound("File not found"))
 
         # Get file info
         file_size = os.path.getsize(file_path)
@@ -224,7 +235,7 @@ class AudioFileView(View):
             return response
 
         except IOError:
-            raise Http404("File could not be read")
+            return _uncacheable(HttpResponseNotFound("File could not be read"))
 
 
 @require_GET
@@ -237,7 +248,7 @@ def serve_voice_note_audio(request, note_id):
     # so request.user is always anonymous in a plain Django view).
     user = authenticate_cookie_user(request)
     if user is None:
-        return HttpResponseForbidden("Authentication required")
+        return _uncacheable(HttpResponseForbidden("Authentication required"))
 
     # Get the voice note and verify ownership
     voice_note = get_object_or_404(
