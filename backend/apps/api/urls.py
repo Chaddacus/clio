@@ -10,6 +10,7 @@ urlpatterns = [
     path('tags/<int:pk>/', views.TagDetailView.as_view(), name='tag-detail'),
     path('folders/', views.FolderListCreateView.as_view(), name='folder-list-create'),
     path('folders/<int:pk>/', views.FolderDetailView.as_view(), name='folder-detail'),
+    path('speakers/<int:pk>/', views.SpeakerDetailView.as_view(), name='speaker-detail'),
     path('transcribe/', views.transcribe_audio, name='transcribe-audio'),
     path('stats/', views.user_stats, name='user-stats'),
 ]

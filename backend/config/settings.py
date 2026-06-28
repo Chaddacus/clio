@@ -201,6 +201,13 @@ WHISPER_FORMAT_TEXT = config('WHISPER_FORMAT_TEXT', default=True, cast=bool)
 WHISPER_PARAGRAPH_BREAK_SECONDS = config('WHISPER_PARAGRAPH_BREAK_SECONDS', default=2.0, cast=float)
 WHISPER_MAX_SENTENCE_LENGTH = config('WHISPER_MAX_SENTENCE_LENGTH', default=150, cast=int)
 
+# Deepgram speaker diarization. When DEEPGRAM_API_KEY is set, transcription
+# routes through Deepgram (transcribe + diarize) so segments carry speaker
+# labels; otherwise it falls back to the Whisper server configured above.
+DEEPGRAM_API_KEY = config('DEEPGRAM_API_KEY', default='')
+DEEPGRAM_MODEL = config('DEEPGRAM_MODEL', default='nova-3')
+DEEPGRAM_BASE_URL = config('DEEPGRAM_BASE_URL', default='https://api.deepgram.com')
+
 AUDIO_UPLOAD_MAX_SIZE = 50 * 1024 * 1024  # 50MB
 AUDIO_ALLOWED_FORMATS = ['wav', 'mp3', 'ogg', 'webm', 'm4a']
 

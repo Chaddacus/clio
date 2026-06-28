@@ -1,12 +1,101 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from 'react-query';
-import { ArrowLeftIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
-import { voiceNotesAPI, foldersAPI } from '../services/api';
+import { ArrowLeftIcon, ArrowPathIcon, PencilIcon } from '@heroicons/react/24/outline';
+import { voiceNotesAPI, foldersAPI, speakersAPI } from '../services/api';
+import { Speaker, TranscriptionSegment } from '../types';
 import AudioPlayer from '../components/NoteEditor/AudioPlayer';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import { getVoiceNoteAudioUrl } from '../utils/audioUtils';
 import toast from 'react-hot-toast';
+
+const formatTimestamp = (seconds: number): string =>
+  `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
+
+interface SpeakerTurn {
+  speakerLabel: string;
+  start: number;
+  segments: TranscriptionSegment[];
+}
+
+// Collapse consecutive same-speaker segments into a single turn for display.
+const groupBySpeaker = (segments: TranscriptionSegment[]): SpeakerTurn[] => {
+  const turns: SpeakerTurn[] = [];
+  for (const seg of segments) {
+    const last = turns[turns.length - 1];
+    if (last && last.speakerLabel === seg.speaker_id) {
+      last.segments.push(seg);
+    } else {
+      turns.push({ speakerLabel: seg.speaker_id, start: seg.start_time, segments: [seg] });
+    }
+  }
+  return turns;
+};
+
+// Inline-editable speaker name. Click to edit; Enter/blur saves, Escape cancels.
+const SpeakerName: React.FC<{
+  speaker?: Speaker;
+  fallback: string;
+  disabled?: boolean;
+  onSave: (name: string) => void;
+}> = ({ speaker, fallback, disabled, onSave }) => {
+  const display = speaker?.name ?? fallback;
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(display);
+
+  useEffect(() => {
+    setValue(speaker?.name ?? fallback);
+  }, [speaker?.name, fallback]);
+
+  // No Speaker row (e.g. non-diarized note) — render a static label.
+  if (!speaker) {
+    return <span className="text-sm font-medium text-on-surface">{display}</span>;
+  }
+
+  const commit = () => {
+    const next = value.trim();
+    setEditing(false);
+    if (next && next !== speaker.name) {
+      onSave(next);
+    } else {
+      setValue(speaker.name);
+    }
+  };
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') commit();
+          if (e.key === 'Escape') {
+            setValue(speaker.name);
+            setEditing(false);
+          }
+        }}
+        maxLength={100}
+        aria-label={`Rename ${display}`}
+        className="text-sm font-medium bg-surface border-b border-primary px-1 py-0.5 focus:outline-none text-on-surface"
+      />
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() => setEditing(true)}
+      aria-label={`Edit speaker name: ${display}`}
+      className="group inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 disabled:opacity-50"
+    >
+      {display}
+      <PencilIcon className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true" />
+    </button>
+  );
+};
 
 // Helper function to parse Django DurationField string to seconds
 const parseDurationToSeconds = (duration: string): number => {
@@ -62,6 +151,19 @@ const NoteDetailPage: React.FC = () => {
       },
       onError: () => {
         toast.error('Failed to move note');
+      },
+    }
+  );
+
+  const renameSpeakerMutation = useMutation(
+    ({ id, name }: { id: number; name: string }) => speakersAPI.update(id, { name }),
+    {
+      onSuccess: () => {
+        toast.success('Speaker renamed');
+        refetch();
+      },
+      onError: () => {
+        toast.error('Failed to rename speaker');
       },
     }
   );
@@ -331,29 +433,62 @@ const NoteDetailPage: React.FC = () => {
       {/* Segments */}
       {note.segments.length > 0 && (
         <div className="card p-6">
-          <h3 className="font-editorial text-xl font-light text-on-surface mb-3">
-            Transcript Segments
+          <h3 className="font-editorial text-xl font-light text-on-surface mb-1">
+            {note.speakers.length > 0 ? 'Transcript by Speaker' : 'Transcript Segments'}
           </h3>
-          <div className="space-y-3">
-            {note.segments.map((segment, index) => (
-              <div
-                key={segment.id}
-                className="flex items-start space-x-3 p-3 bg-surface-container-high rounded-lg"
-              >
-                <div className="flex-shrink-0 text-xs text-on-surface-variant font-mono uppercase tracking-wider mt-1">
-                  {Math.floor(segment.start_time / 60)}:{String(Math.floor(segment.start_time % 60)).padStart(2, '0')}
-                </div>
-                <div className="flex-1 text-sm text-on-surface font-sans leading-relaxed">
-                  {segment.text}
-                </div>
-                {segment.confidence && (
-                  <div className="flex-shrink-0 text-xs text-on-surface-variant uppercase tracking-wider">
-                    {Math.round(segment.confidence * 100)}%
-                  </div>
-                )}
+          {note.speakers.length > 0 ? (
+            <>
+              <p className="text-xs text-on-surface-variant mb-4">
+                Click a speaker name to rename it.
+              </p>
+              <div className="space-y-4">
+                {groupBySpeaker(note.segments).map((turn, index) => {
+                  const speaker = note.speakers.find((s) => s.label === turn.speakerLabel);
+                  return (
+                    <div key={index} className="p-3 bg-surface-container-high rounded-lg">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <SpeakerName
+                          speaker={speaker}
+                          fallback={turn.speakerLabel || 'Unknown speaker'}
+                          disabled={renameSpeakerMutation.isLoading}
+                          onSave={(name) => {
+                            if (speaker) renameSpeakerMutation.mutate({ id: speaker.id, name });
+                          }}
+                        />
+                        <span className="flex-shrink-0 text-xs text-on-surface-variant font-mono uppercase tracking-wider">
+                          {formatTimestamp(turn.start)}
+                        </span>
+                      </div>
+                      <div className="text-sm text-on-surface font-sans leading-relaxed">
+                        {turn.segments.map((s) => s.text).join(' ')}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-          </div>
+            </>
+          ) : (
+            <div className="space-y-3">
+              {note.segments.map((segment) => (
+                <div
+                  key={segment.id}
+                  className="flex items-start space-x-3 p-3 bg-surface-container-high rounded-lg"
+                >
+                  <div className="flex-shrink-0 text-xs text-on-surface-variant font-mono uppercase tracking-wider mt-1">
+                    {formatTimestamp(segment.start_time)}
+                  </div>
+                  <div className="flex-1 text-sm text-on-surface font-sans leading-relaxed">
+                    {segment.text}
+                  </div>
+                  {segment.confidence && (
+                    <div className="flex-shrink-0 text-xs text-on-surface-variant uppercase tracking-wider">
+                      {Math.round(segment.confidence * 100)}%
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
