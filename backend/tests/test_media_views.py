@@ -40,6 +40,9 @@ class TestAudioFileView:
         note = _make_note(user)
         resp = api_client.get(f'/media/{note.audio_file.name}')
         assert resp.status_code == status.HTTP_403_FORBIDDEN
+        # Deny responses must be no-store so a shared CDN (keyed on URL, not the
+        # auth cookie) can't cache the 403 and serve it back to the owner.
+        assert resp.headers['Cache-Control'] == 'no-store'
 
     def test_owner_can_fetch(self, api_client, user, settings, tmp_path):
         settings.MEDIA_ROOT = str(tmp_path)
@@ -47,6 +50,8 @@ class TestAudioFileView:
         _set_cookie(api_client, user)
         resp = api_client.get(f'/media/{note.audio_file.name}')
         assert resp.status_code == status.HTTP_200_OK
+        # Success is browser-cacheable but private — never stored by a shared CDN.
+        assert 'private' in resp.headers['Cache-Control']
 
     def test_other_user_cannot_fetch(self, api_client, user, user_b, settings, tmp_path):
         settings.MEDIA_ROOT = str(tmp_path)
@@ -54,6 +59,7 @@ class TestAudioFileView:
         _set_cookie(api_client, user_b)
         resp = api_client.get(f'/media/{note.audio_file.name}')
         assert resp.status_code == status.HTTP_404_NOT_FOUND
+        assert resp.headers['Cache-Control'] == 'no-store'
 
 
 @pytest.mark.django_db
@@ -65,6 +71,7 @@ class TestServeVoiceNoteAudio:
         note = _make_note(user)
         resp = api_client.get(f'/api/audio/{note.id}/')
         assert resp.status_code == status.HTTP_403_FORBIDDEN
+        assert resp.headers['Cache-Control'] == 'no-store'
 
     def test_owner_can_fetch(self, api_client, user, settings, tmp_path):
         settings.MEDIA_ROOT = str(tmp_path)
