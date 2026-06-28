@@ -117,7 +117,8 @@ services:
       - whisper_cache:/root/.cache/huggingface
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=10)"]
+      # The fedirz image ships python3 (not `python`) and no curl/wget.
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=10)"]
       interval: 30s
       timeout: 10s
       start_period: 60s
