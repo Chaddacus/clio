@@ -3,6 +3,21 @@ from rest_framework import serializers
 from .models import Tag, TranscriptionSegment, VoiceNote
 
 
+class UserScopedTagField(serializers.PrimaryKeyRelatedField):
+    """tag_ids must resolve only to tags owned by the requesting user.
+
+    Using an unscoped Tag.objects.all() queryset lets a user attach another
+    user's tag (enumerable id) to their note — an IDOR. Scoping the queryset to
+    request.user makes a foreign tag id resolve to "does not exist".
+    """
+
+    def get_queryset(self):
+        request = self.context.get('request', None)
+        if request is None or not request.user.is_authenticated:
+            return Tag.objects.none()
+        return Tag.objects.filter(user=request.user)
+
+
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
@@ -54,8 +69,7 @@ class VoiceNoteListSerializer(serializers.ModelSerializer):
 
 class VoiceNoteDetailSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True, read_only=True)
-    tag_ids = serializers.PrimaryKeyRelatedField(
-        queryset=Tag.objects.all(),
+    tag_ids = UserScopedTagField(
         many=True,
         write_only=True,
         required=False
@@ -100,8 +114,7 @@ class VoiceNoteDetailSerializer(serializers.ModelSerializer):
 
 
 class VoiceNoteCreateSerializer(serializers.ModelSerializer):
-    tag_ids = serializers.PrimaryKeyRelatedField(
-        queryset=Tag.objects.all(),
+    tag_ids = UserScopedTagField(
         many=True,
         required=False
     )

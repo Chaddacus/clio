@@ -1,0 +1,35 @@
+# Python caches / build artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Test / coverage / lint caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Local virtualenvs
+.venv/
+venv/
+env/
+
+# Local uploaded media and SQLite
+media/
+*.sqlite3
+
+# Tests (not needed in the runtime image)
+tests/
+conftest.py
+
+# VCS / editor / env
+.git/
+.gitignore
+.env
+.env.*
+*.md

@@ -1,16 +1,43 @@
 import mimetypes
 import os
 from email.utils import formatdate
+from urllib.parse import quote
 
 from django.conf import settings
-from django.http import FileResponse, Http404, StreamingHttpResponse
+from django.http import (
+    FileResponse,
+    Http404,
+    HttpResponseForbidden,
+    StreamingHttpResponse,
+)
 from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.cache import cache_control
 from django.views.decorators.http import require_GET
+from rest_framework.exceptions import AuthenticationFailed
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 
+from apps.core.auth import CookieJWTAuthentication
 from apps.voice_notes.models import VoiceNote
+
+
+def authenticate_cookie_user(request):
+    """Authenticate via the access_token JWT cookie. Returns a user or None.
+
+    Media endpoints are hit directly by the browser (e.g. <audio src>), which
+    sends the httpOnly access_token cookie automatically. We reuse the same JWT
+    cookie authenticator the API uses rather than Django session auth (the app
+    issues no Django session).
+    """
+    try:
+        result = CookieJWTAuthentication().authenticate(request)
+    except (AuthenticationFailed, InvalidToken, TokenError):
+        return None
+    if result is None:
+        return None
+    user, _token = result
+    return user if (user and user.is_authenticated) else None
 
 
 def parse_range_header(range_header, file_size):
@@ -103,6 +130,16 @@ class AudioFileView(View):
         if not os.path.abspath(file_path).startswith(os.path.abspath(settings.MEDIA_ROOT)):
             raise Http404("Invalid file path")
 
+        # AuthN: require a valid access_token cookie.
+        user = authenticate_cookie_user(request)
+        if user is None:
+            return HttpResponseForbidden("Authentication required")
+
+        # AuthZ: the requester must own the voice note this audio belongs to.
+        # audio_file is stored relative to MEDIA_ROOT as 'audio/<user_id>/<file>'.
+        if not VoiceNote.objects.filter(audio_file=f'audio/{path}', user=user).exists():
+            raise Http404("File not found")
+
         # Check if file exists
         if not os.path.exists(file_path):
             raise Http404("File not found")
@@ -167,15 +204,14 @@ class AudioFileView(View):
 
                 response['Content-Length'] = str(file_size)
 
-            # Set headers for better streaming and browser compatibility
+            # Set headers for better streaming and browser compatibility.
+            # CORS is handled by django-cors-headers middleware against the
+            # configured allowlist — do NOT reflect Origin here (that would
+            # re-enable credentialed wildcard CORS).
             response['Accept-Ranges'] = 'bytes'
-            response['Access-Control-Allow-Origin'] = request.META.get('HTTP_ORIGIN', '*')
-            response['Access-Control-Allow-Credentials'] = 'true'
-            response['Access-Control-Allow-Headers'] = 'Range, Content-Type, Authorization, If-Range'
-            response['Access-Control-Expose-Headers'] = 'Content-Range, Content-Length, Accept-Ranges, ETag, Last-Modified'
 
             # Optimize cache headers for large audio files (24 hours cache, but allow conditional requests)
-            response['Cache-Control'] = 'public, max-age=86400, must-revalidate'
+            response['Cache-Control'] = 'private, max-age=86400, must-revalidate'
             response['ETag'] = f'"{file_size}-{int(os.path.getmtime(file_path))}"'
             response['Last-Modified'] = self.format_http_date(os.path.getmtime(file_path))
 
@@ -197,14 +233,17 @@ def serve_voice_note_audio(request, note_id):
     Serve audio file for a specific voice note with authentication.
     This provides an authenticated endpoint for audio files.
     """
-    if not request.user.is_authenticated:
-        raise Http404("Authentication required")
+    # AuthN via the access_token JWT cookie (the app issues no Django session,
+    # so request.user is always anonymous in a plain Django view).
+    user = authenticate_cookie_user(request)
+    if user is None:
+        return HttpResponseForbidden("Authentication required")
 
     # Get the voice note and verify ownership
     voice_note = get_object_or_404(
         VoiceNote,
         id=note_id,
-        user=request.user
+        user=user
     )
 
     if not voice_note.audio_file:
@@ -237,12 +276,11 @@ def serve_voice_note_audio(request, note_id):
         content_type=content_type
     )
 
-    # Set CORS headers
-    response['Access-Control-Allow-Origin'] = request.META.get('HTTP_ORIGIN', '*')
-    response['Access-Control-Allow-Credentials'] = 'true'
-
-    # Set file-related headers
+    # CORS handled by django-cors-headers middleware (no Origin reflection here).
+    # Set file-related headers. RFC 5987-encode the filename to neutralize
+    # quote/CRLF header-injection via attacker-influenced filenames.
     response['Accept-Ranges'] = 'bytes'
-    response['Content-Disposition'] = f'inline; filename="{os.path.basename(file_path)}"'
+    safe_name = quote(os.path.basename(file_path))
+    response['Content-Disposition'] = f"inline; filename*=UTF-8''{safe_name}"
 
     return response

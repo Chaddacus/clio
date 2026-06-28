@@ -11,7 +11,6 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
 import LoadingSpinner from './components/Common/LoadingSpinner';
-import MinimalRecorderTest from './components/MinimalRecorderTest';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -120,17 +119,6 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/test-minimal"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <MinimalRecorderTest />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
       {/* Default redirect */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
