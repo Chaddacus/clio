@@ -6,6 +6,11 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
+# Prod is always same-origin: the SPA is served by nginx which proxies /api and
+# /media to the backend. Bake it in so the build never falls back to the
+# localhost:8000 dev default (CRA shell env takes precedence over .env files,
+# which are intentionally excluded from the build context via .dockerignore).
+ENV REACT_APP_API_URL=/api
 RUN npm run build
 
 # Production image — Debian slim with nginx (no debug tooling)
