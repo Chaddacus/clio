@@ -129,8 +129,11 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.UserRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '10/minute',
-        'user': '60/minute',
+        # Generous caps for a small private app: high enough never to bite
+        # legitimate use (login retries, the SPA's burst of requests on load),
+        # low enough to still cap automated abuse. Env-tunable without a redeploy.
+        'anon': config('THROTTLE_ANON_RATE', default='60/minute'),
+        'user': config('THROTTLE_USER_RATE', default='1000/minute'),
     },
     'EXCEPTION_HANDLER': 'apps.core.exception_handler.custom_exception_handler',
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
