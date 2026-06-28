@@ -138,6 +138,9 @@ services:
       - "traefik.http.routers.clio.tls=true"
       - "traefik.http.routers.clio.tls.certresolver=cloudflare"
       - "traefik.http.services.clio.loadbalancer.server.port=3000"
+      # Frontend is on both `default` and `web`; tell Traefik which network to
+      # reach the container on, otherwise routing to the container is ambiguous.
+      - "traefik.docker.network=web"
     networks:
       - default
       - web
