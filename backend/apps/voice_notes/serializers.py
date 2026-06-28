@@ -135,13 +135,13 @@ class VoiceNoteDetailSerializer(serializers.ModelSerializer):
             'id', 'title', 'transcription', 'username', 'audio_file', 'audio_url',
             'duration', 'file_size_mb', 'language_detected', 'confidence_score',
             'status', 'error_message', 'is_favorite', 'tags', 'tag_ids',
-            'folder', 'folder_name', 'segments', 'speakers',
+            'folder', 'folder_name', 'segments', 'speakers', 'trace_id',
             'created_at', 'updated_at'
         )
         read_only_fields = (
             'id', 'username', 'file_size_mb', 'language_detected',
             'confidence_score', 'status', 'error_message', 'segments', 'speakers',
-            'created_at', 'updated_at', 'audio_url'
+            'trace_id', 'created_at', 'updated_at', 'audio_url'
         )
 
     def get_audio_url(self, obj):

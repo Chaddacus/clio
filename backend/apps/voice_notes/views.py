@@ -12,6 +12,7 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from apps.core.middleware import get_request_id
 from apps.core.services import AudioProcessingService, get_transcription_service
 from apps.users.models import UserProfile
 
@@ -129,11 +130,18 @@ class VoiceNoteListCreateView(generics.ListCreateAPIView):
 
         voice_note = serializer.save()
 
+        # Carry the request's trace id through to the async task so the whole
+        # lifecycle (HTTP request -> task -> Deepgram) shares one correlation id.
+        trace_id = get_request_id()
+        if trace_id:
+            voice_note.trace_id = trace_id
+            voice_note.save(update_fields=['trace_id'])
+
         # Dispatch transcription to Celery worker (non-blocking)
         from .tasks import transcribe_voice_note_task
-        transcribe_voice_note_task.delay(voice_note.id)
+        transcribe_voice_note_task.delay(voice_note.id, trace_id=trace_id)
 
-        logger.info("Voice note %d created, transcription dispatched", voice_note.id)
+        logger.info("Voice note %d created, transcription dispatched (trace_id=%s)", voice_note.id, trace_id)
         return Response({
             'success': True,
             'message': 'Voice note created. Transcription in progress.',
@@ -292,11 +300,14 @@ def retranscribe_voice_note(request, pk):
 
         note.status = 'processing'
         note.error_message = ""
+        trace_id = get_request_id()
+        if trace_id:
+            note.trace_id = trace_id
         note.save()
 
         # Dispatch retranscription to Celery worker (non-blocking)
         from .tasks import retranscribe_voice_note_task
-        retranscribe_voice_note_task.delay(note.id, language)
+        retranscribe_voice_note_task.delay(note.id, language, trace_id=trace_id)
 
         logger.info("Re-transcription dispatched for note %d", pk)
         return Response({

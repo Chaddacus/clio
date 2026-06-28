@@ -107,6 +107,9 @@ export const voiceNotesAPI = {
     return api.post('/notes/', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
+        // Originate the end-to-end trace id at the browser; the backend
+        // RequestIDMiddleware adopts it and carries it through to the task.
+        'X-Request-ID': (globalThis.crypto?.randomUUID?.() ?? `web-${Date.now()}`),
       },
     });
   },

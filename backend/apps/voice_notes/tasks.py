@@ -1,8 +1,10 @@
 import logging
+import time
 from datetime import timedelta
 
 from celery import shared_task
 
+from apps.core.middleware import set_request_id
 from apps.core.services import AudioProcessingService, get_transcription_service
 
 from .models import VoiceNote
@@ -12,8 +14,10 @@ logger = logging.getLogger(__name__)
 
 
 @shared_task(bind=True, max_retries=2, default_retry_delay=10)
-def transcribe_voice_note_task(self, note_id: int, language: str = 'auto') -> None:
-    """Async task to transcribe a voice note via OpenAI Whisper."""
+def transcribe_voice_note_task(self, note_id: int, language: str = 'auto', trace_id: str = '') -> None:
+    """Async task to transcribe a voice note via the configured provider."""
+    set_request_id(trace_id)  # continue the trace from the originating request
+    started = time.monotonic()
     try:
         note = VoiceNote.objects.get(id=note_id)
     except VoiceNote.DoesNotExist:
@@ -49,7 +53,10 @@ def transcribe_voice_note_task(self, note_id: int, language: str = 'auto') -> No
 
         note.save()
         _update_storage(note.user, note.file_size_bytes)
-        logger.info("Transcription task completed for note %d, status=%s", note_id, note.status)
+        logger.info(
+            "Transcription task completed for note %d, status=%s, elapsed_ms=%d",
+            note_id, note.status, int((time.monotonic() - started) * 1000),
+        )
 
     except Exception as exc:
         logger.error("Transcription task failed for note %d: %s", note_id, exc, exc_info=True)
@@ -60,8 +67,9 @@ def transcribe_voice_note_task(self, note_id: int, language: str = 'auto') -> No
 
 
 @shared_task(bind=True, max_retries=2, default_retry_delay=10)
-def retranscribe_voice_note_task(self, note_id: int, language: str = 'auto') -> None:
+def retranscribe_voice_note_task(self, note_id: int, language: str = 'auto', trace_id: str = '') -> None:
     """Async task to re-transcribe a voice note with a different language."""
+    set_request_id(trace_id)  # continue the trace from the originating request
     try:
         note = VoiceNote.objects.get(id=note_id)
     except VoiceNote.DoesNotExist:

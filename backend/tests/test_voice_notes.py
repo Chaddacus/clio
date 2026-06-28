@@ -133,7 +133,7 @@ class TestVoiceNoteCreate:
         assert resp.status_code == status.HTTP_202_ACCEPTED
         note = VoiceNote.objects.get(user=user)
         assert note.title == 'Hello'
-        mock_delay.assert_called_once_with(note.id)
+        mock_delay.assert_called_once_with(note.id, trace_id=note.trace_id)
 
     def test_create_rejects_disguised_file(self, authenticated_client, user, settings, tmp_path):
         """A non-audio payload with an audio Content-Type is rejected (magic bytes)."""
