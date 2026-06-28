@@ -2,8 +2,8 @@ import axios, { AxiosResponse } from 'axios';
 import {
   User, AuthTokens, RegisterData, LoginData, UserProfile,
   VoiceNote, VoiceNoteListItem, CreateVoiceNoteData, UpdateVoiceNoteData,
-  Tag, Folder, Speaker, PaginatedResponse, UserStats, TranscriptionResult, ApiResponse,
-  VoiceNotesFilters
+  Tag, Folder, Speaker, SupportRequest, SupportKind, PaginatedResponse, UserStats,
+  TranscriptionResult, ApiResponse, VoiceNotesFilters
 } from '../types';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
@@ -180,6 +180,12 @@ export const foldersAPI = {
 export const speakersAPI = {
   update: (id: number, data: { name: string }): Promise<AxiosResponse<Speaker>> =>
     api.patch(`/speakers/${id}/`, data),
+};
+
+// Support API (in-app change requests / bug reports -> codex self-heal pipeline)
+export const supportAPI = {
+  create: (data: { kind: SupportKind; body: string; trace_id?: string }): Promise<AxiosResponse<SupportRequest>> =>
+    api.post('/support/', data),
 };
 
 export default api;

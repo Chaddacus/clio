@@ -10,6 +10,7 @@ import {
   ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../hooks/useAuth';
+import SupportWidget from '../Support/SupportWidget';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -157,6 +158,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           {children}
         </main>
       </div>
+
+      <SupportWidget />
     </div>
   );
 };
