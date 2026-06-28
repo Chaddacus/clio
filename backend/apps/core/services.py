@@ -227,8 +227,55 @@ class AudioProcessingService:
         return None
 
     @staticmethod
+    def _sniff_audio_magic(audio_file: Any) -> bool:
+        """Return True if the file's leading bytes match a known audio container.
+
+        Client-supplied Content-Type and filename extension are both spoofable.
+        Without a header check an attacker can store arbitrary content (e.g.
+        HTML/JS) as 'audio/wav', which — combined with media serving — becomes a
+        stored-content vector. We inspect the actual magic bytes.
+        """
+        try:
+            pos = audio_file.tell() if hasattr(audio_file, 'tell') else None
+        except (OSError, ValueError):
+            pos = None
+        try:
+            audio_file.seek(0)
+            header = audio_file.read(16) or b''
+        except (OSError, ValueError, AttributeError):
+            return False
+        finally:
+            try:
+                audio_file.seek(pos if pos is not None else 0)
+            except (OSError, ValueError, AttributeError):
+                pass
+
+        if not isinstance(header, (bytes, bytearray)) or len(header) < 4:
+            return False
+
+        # WAV: 'RIFF'....'WAVE'
+        if header[:4] == b'RIFF' and header[8:12] == b'WAVE':
+            return True
+        # MP3: 'ID3' tag or MPEG frame sync (0xFF 0xEx/0xFx)
+        if header[:3] == b'ID3' or (header[0] == 0xFF and (header[1] & 0xE0) == 0xE0):
+            return True
+        # OGG / Opus
+        if header[:4] == b'OggS':
+            return True
+        # FLAC
+        if header[:4] == b'fLaC':
+            return True
+        # WebM / Matroska (EBML)
+        if header[:4] == b'\x1a\x45\xdf\xa3':
+            return True
+        # MP4 / M4A: 'ftyp' box at offset 4
+        if header[4:8] == b'ftyp':
+            return True
+        return False
+
+    @staticmethod
     def validate_audio_format(audio_file: Any) -> tuple[bool, str]:
-        """Validate audio file content type and size."""
+        """Validate audio file content type, size, and actual magic bytes."""
         allowed_types = [
             'audio/wav', 'audio/mpeg', 'audio/mp4', 'audio/x-m4a',
             'audio/ogg', 'audio/webm', 'audio/flac',
@@ -245,6 +292,9 @@ class AudioProcessingService:
         max_size = 50 * 1024 * 1024
         if audio_file.size > max_size:
             return False, f"Audio file too large: {audio_file.size} bytes. Maximum allowed: {max_size} bytes"
+
+        if not AudioProcessingService._sniff_audio_magic(audio_file):
+            return False, "File content does not match a supported audio format"
 
         return True, "Valid audio format"
 

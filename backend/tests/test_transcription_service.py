@@ -15,13 +15,15 @@ class TestWhisperTranscriptionServiceInit:
     @patch('apps.core.services.settings')
     def test_raises_when_no_api_key(self, mock_settings):
         mock_settings.OPENAI_API_KEY = ''
-        with pytest.raises(ValueError, match="OpenAI API key not configured"):
+        mock_settings.OPENAI_BASE_URL = ''
+        with pytest.raises(ValueError, match="OpenAI API key or base URL not configured"):
             WhisperTranscriptionService()
 
     @patch('apps.core.services.OpenAI')
     @patch('apps.core.services.settings')
     def test_initializes_with_valid_key(self, mock_settings, mock_openai):
         mock_settings.OPENAI_API_KEY = 'test-key'
+        mock_settings.OPENAI_BASE_URL = ''
         mock_settings.WHISPER_MODEL = 'whisper-1'
         mock_settings.WHISPER_TEMPERATURE = 0
         mock_settings.WHISPER_FORMAT_TEXT = False
@@ -164,8 +166,19 @@ class TestAudioValidation:
         audio = MagicMock()
         audio.content_type = 'audio/wav'
         audio.size = 5000
+        audio.read.return_value = b'RIFF\x24\x00\x00\x00WAVEfmt '  # real WAV magic
         valid, msg = AudioProcessingService.validate_audio_format(audio)
         assert valid is True
+
+    def test_rejects_disguised_non_audio(self):
+        """A non-audio file claiming Content-Type audio/wav is rejected by magic bytes."""
+        audio = MagicMock()
+        audio.content_type = 'audio/wav'
+        audio.size = 5000
+        audio.read.return_value = b'<html><body>not audio</body>'
+        valid, msg = AudioProcessingService.validate_audio_format(audio)
+        assert valid is False
+        assert 'does not match' in msg
 
     def test_invalid_content_type(self):
         audio = MagicMock()

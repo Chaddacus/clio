@@ -79,3 +79,40 @@ docker-compose -f docker-compose.prod.yml exec -T db psql -U $DB_USER $DB_NAME <
 - Transport security (HSTS, SSL redirect, secure cookies) is automatically enabled when `DEBUG=False`
 - Rate limiting: anonymous 10/min, authenticated 60/min (DRF), auth endpoints 5/s (nginx)
 - JWT tokens are blacklisted after rotation
+- Audio media is auth-gated and ownership-checked (`/media/audio/...` and `/api/audio/<id>/`); uploads are validated by magic bytes, not just Content-Type
+- The backend image runs as a **non-root** user (uid 1000) — see the volume-ownership migration step below
+
+## Prerequisites (first-time host setup)
+
+```bash
+# Traefik shares this external network with the app
+docker network create web
+```
+
+## Migration notes for the security-hardened release
+
+This release changes three operational facts. Apply on the next deploy:
+
+1. **Whisper now runs inside compose.** A `whisper-server` service was added to
+   `docker-compose.prod.yml`; `celery` reaches it by service name at
+   `http://whisper-server:8000/v1`. **Remove any `OPENAI_BASE_URL` override from
+   the host `.env`** (e.g. the old `http://172.17.0.1:8300/v1`) so the compose
+   default is used, and stop/remove the old hand-run `whisper-server` container:
+   ```bash
+   docker rm -f whisper-server   # the pre-compose, hand-run container
+   docker compose -f docker-compose.prod.yml up -d
+   ```
+   The model is cached in the `whisper_cache` volume (no re-download on recreate).
+
+2. **Non-root backend image + existing volumes.** The hardened image runs as uid
+   1000. Existing `media_files` / `static_files` volumes are root-owned from the
+   old root image; chown them once so the non-root process can write:
+   ```bash
+   docker run --rm -v clio_media_files:/m -v clio_static_files:/s alpine \
+     sh -c "chown -R 1000:1000 /m /s"
+   ```
+   (Volume names are prefixed by the compose project; adjust if yours differ.)
+
+3. **Celery healthcheck.** `celery` now has a real healthcheck
+   (`celery -A config inspect ping`) instead of the broken HTTP probe that
+   reported the worker as permanently "unhealthy".

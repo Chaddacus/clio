@@ -1,7 +1,21 @@
+import struct
+from unittest.mock import patch
+
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework import status
 
 from apps.voice_notes.models import Tag, VoiceNote
+
+
+def _wav_bytes(payload=2048):
+    data = b'\x80' * payload
+    header = struct.pack(
+        '<4sI4s4sIHHIIHH4sI',
+        b'RIFF', 36 + len(data), b'WAVE', b'fmt ', 16, 1, 1,
+        8000, 8000, 1, 8, b'data', len(data),
+    )
+    return header + data
 
 
 @pytest.mark.django_db
@@ -96,6 +110,57 @@ class TestUserStats:
         assert data['completed_notes'] == 1
         assert data['failed_notes'] == 1
         assert data['processing_notes'] == 1
+
+    def test_stats_zero_quota_no_crash(self, authenticated_client, user):
+        """storage_quota_mb=0 must not raise ZeroDivisionError."""
+        profile = user.userprofile
+        profile.storage_quota_mb = 0
+        profile.save()
+        resp = authenticated_client.get('/api/stats/')
+        assert resp.status_code == status.HTTP_200_OK
+        assert resp.data['data']['storage_percentage'] == 0
+
+
+@pytest.mark.django_db
+class TestVoiceNoteCreate:
+    def test_create_dispatches_transcription(self, authenticated_client, user, settings, tmp_path):
+        settings.MEDIA_ROOT = str(tmp_path)
+        upload = SimpleUploadedFile('note.wav', _wav_bytes(), content_type='audio/wav')
+        with patch('apps.voice_notes.tasks.transcribe_voice_note_task.delay') as mock_delay:
+            resp = authenticated_client.post(
+                '/api/notes/', {'audio_file': upload, 'title': 'Hello'}, format='multipart'
+            )
+        assert resp.status_code == status.HTTP_202_ACCEPTED
+        note = VoiceNote.objects.get(user=user)
+        assert note.title == 'Hello'
+        mock_delay.assert_called_once_with(note.id)
+
+    def test_create_rejects_disguised_file(self, authenticated_client, user, settings, tmp_path):
+        """A non-audio payload with an audio Content-Type is rejected (magic bytes)."""
+        settings.MEDIA_ROOT = str(tmp_path)
+        disguised = SimpleUploadedFile(
+            'evil.wav', b'<html>not audio</html>' + b'\x00' * 2048, content_type='audio/wav'
+        )
+        with patch('apps.voice_notes.tasks.transcribe_voice_note_task.delay') as mock_delay:
+            resp = authenticated_client.post(
+                '/api/notes/', {'audio_file': disguised}, format='multipart'
+            )
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert not VoiceNote.objects.filter(user=user).exists()
+        mock_delay.assert_not_called()
+
+    def test_create_cannot_use_other_users_tag(self, authenticated_client, user, user_b, settings, tmp_path):
+        """tag_ids must be scoped to the requester — foreign tag id is rejected (IDOR)."""
+        settings.MEDIA_ROOT = str(tmp_path)
+        foreign_tag = Tag.objects.create(name='theirs', color='#111111', user=user_b)
+        upload = SimpleUploadedFile('note.wav', _wav_bytes(), content_type='audio/wav')
+        with patch('apps.voice_notes.tasks.transcribe_voice_note_task.delay'):
+            resp = authenticated_client.post(
+                '/api/notes/',
+                {'audio_file': upload, 'tag_ids': foreign_tag.id},
+                format='multipart',
+            )
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.django_db

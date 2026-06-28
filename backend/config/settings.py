@@ -163,7 +163,17 @@ CORS_ALLOWED_ORIGINS = [
 CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='https://clio.chadacus.dev', cast=lambda v: [s.strip() for s in v.split(',')])
 
 CORS_ALLOW_CREDENTIALS = True
-CORS_EXPOSE_HEADERS = ['X-Request-ID']
+# Range-streaming headers must be exposed to the browser for cross-origin audio
+# playback (replaces the per-response Access-Control-Expose-Headers that the
+# media views used to set manually alongside reflected-Origin CORS).
+CORS_EXPOSE_HEADERS = [
+    'X-Request-ID',
+    'Content-Range',
+    'Content-Length',
+    'Accept-Ranges',
+    'ETag',
+    'Last-Modified',
+]
 
 CORS_ALLOW_ALL_ORIGINS = False
 
@@ -201,10 +211,11 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 
 # Transport security (enabled only in production)
-# Traefik handles SSL termination — trust X-Forwarded-Proto header
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-
 if not DEBUG:
+    # Traefik handles SSL termination — trust X-Forwarded-Proto header.
+    # Kept inside the prod block: in DEBUG, honoring a client-supplied
+    # X-Forwarded-Proto would let any caller fake request.is_secure().
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = False  # Traefik handles HTTPS redirect
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True

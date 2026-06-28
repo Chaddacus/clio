@@ -1,58 +1,54 @@
-FROM python:3.9
+# syntax=docker/dockerfile:1
 
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
+# ---- builder: compile wheels into an isolated venv ----
+FROM python:3.12-slim AS builder
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1
 
 WORKDIR /app
 
-# Install system dependencies + debugging tools
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        postgresql-client \
         build-essential \
         libpq-dev \
-        ffmpeg \
-        # Debugging & diagnostic tools
-        curl \
-        wget \
-        vim \
-        nano \
-        less \
-        htop \
-        strace \
-        lsof \
-        net-tools \
-        iputils-ping \
-        dnsutils \
-        tcpdump \
-        procps \
-        jq \
-        tree \
-        git \
-        gdb \
-        ncurses-bin \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy and install Python dependencies
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# Install Python debugging tools
-RUN pip install --no-cache-dir \
-    ipdb \
-    ipython \
-    django-extensions \
-    rich
+# ---- runtime: app-only image, no build/debug tooling, non-root ----
+FROM python:3.12-slim AS runtime
 
-# Copy application code
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATH="/opt/venv/bin:$PATH"
+
+WORKDIR /app
+
+# Runtime libs only: libpq5 for psycopg2, ffmpeg for audio duration probing.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        libpq5 \
+        ffmpeg \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system --gid 1000 app \
+    && useradd --system --uid 1000 --gid app --home-dir /app app
+
+COPY --from=builder /opt/venv /opt/venv
 COPY . .
 
-# Create media directory for uploaded files
-RUN mkdir -p /app/media/audio
+RUN mkdir -p /app/media/audio /app/staticfiles \
+    && chown -R app:app /app
+
+USER app
 
 EXPOSE 8000
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=10s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/', timeout=10)" || exit 1
 

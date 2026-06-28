@@ -268,7 +268,10 @@ def user_stats(request):
         stats.update({
             'storage_used_mb': float(profile.storage_used_mb),
             'storage_quota_mb': profile.storage_quota_mb,
-            'storage_percentage': round(float(profile.storage_used_mb) / profile.storage_quota_mb * 100, 1),
+            'storage_percentage': (
+                round(float(profile.storage_used_mb) / profile.storage_quota_mb * 100, 1)
+                if profile.storage_quota_mb else 0
+            ),
         })
     except UserProfile.DoesNotExist:
         stats.update({

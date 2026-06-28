@@ -8,20 +8,13 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# Production image — Debian slim with nginx + debug tools
+# Production image — Debian slim with nginx (no debug tooling)
 FROM debian:bookworm-slim
 
+# curl is retained only for the container HEALTHCHECK below.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     nginx \
     curl \
-    wget \
-    vim-tiny \
-    less \
-    procps \
-    net-tools \
-    jq \
-    dnsutils \
-    htop \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy built React app
@@ -32,6 +25,12 @@ RUN printf 'server {\n\
     listen 3000;\n\
     root /usr/share/nginx/html;\n\
     index index.html;\n\
+    server_tokens off;\n\
+\n\
+    add_header X-Frame-Options "DENY" always;\n\
+    add_header X-Content-Type-Options "nosniff" always;\n\
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;\n\
+    add_header Permissions-Policy "camera=(), microphone=(self), geolocation=()" always;\n\
 \n\
     location / {\n\
         try_files $uri $uri/ /index.html;\n\
@@ -40,6 +39,7 @@ RUN printf 'server {\n\
     location /static/ {\n\
         expires 1y;\n\
         add_header Cache-Control "public, immutable";\n\
+        add_header X-Content-Type-Options "nosniff" always;\n\
     }\n\
 \n\
     location /api/ {\n\
@@ -49,6 +49,8 @@ RUN printf 'server {\n\
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n\
         proxy_set_header X-Forwarded-Proto $scheme;\n\
         client_max_body_size 50M;\n\
+        proxy_read_timeout 120s;\n\
+        proxy_send_timeout 120s;\n\
     }\n\
 \n\
     location /media/ {\n\
@@ -57,6 +59,8 @@ RUN printf 'server {\n\
         proxy_set_header X-Real-IP $remote_addr;\n\
         proxy_set_header Range $http_range;\n\
         proxy_set_header If-Range $http_if_range;\n\
+        proxy_read_timeout 120s;\n\
+        proxy_send_timeout 120s;\n\
     }\n\
 }\n' > /etc/nginx/sites-available/default
 

@@ -1,0 +1,24 @@
+# Dependencies / build output (reinstalled/rebuilt in-image)
+node_modules/
+build/
+dist/
+
+# E2E + Playwright artifacts
+e2e/
+playwright/
+playwright-report/
+test-results/
+.playwright-cli/
+playwright.config.*
+
+# Debug / manual test scratch
+debug-*.png
+*-test.html
+manual-test-script.js
+
+# VCS / editor / env
+.git/
+.gitignore
+.env
+.env.*
+npm-debug.log*
