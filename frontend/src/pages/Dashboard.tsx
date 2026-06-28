@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useQuery } from 'react-query';
 import { Link, useNavigate } from 'react-router-dom';
-import { PlusIcon, MicrophoneIcon, CheckCircleIcon, ArrowPathIcon, HeartIcon } from '@heroicons/react/24/outline';
-import { voiceNotesAPI } from '../services/api';
+import { PlusIcon, MicrophoneIcon, CheckCircleIcon, ArrowPathIcon, HeartIcon, FolderIcon } from '@heroicons/react/24/outline';
+import { voiceNotesAPI, foldersAPI } from '../services/api';
 import { VoiceNoteListItem } from '../types';
 import NotesGrid from '../components/NotesList/NotesGrid';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
@@ -12,22 +12,52 @@ import toast from 'react-hot-toast';
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [filters, setFilters] = useState({
+  const [filters] = useState({
     search: '',
     status: undefined,
     is_favorite: undefined,
     ordering: '-created_at',
   });
+  const [selectedFolder, setSelectedFolder] = useState<number | 'all' | 'unfiled'>('all');
+  const [showNewFolder, setShowNewFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+
+  const { data: foldersData, refetch: refetchFolders } = useQuery(
+    ['folders'],
+    () => foldersAPI.list(),
+    { onError: () => toast.error('Failed to load folders') }
+  );
+  const folders = foldersData?.data || [];
+
+  const noteFilters = {
+    ...filters,
+    ...(typeof selectedFolder === 'number' ? { folder: selectedFolder } : {}),
+    ...(selectedFolder === 'unfiled' ? { unfiled: true } : {}),
+  };
 
   const { data: notesData, isLoading, refetch } = useQuery(
-    ['voice-notes', filters],
-    () => voiceNotesAPI.list(filters),
+    ['voice-notes', noteFilters],
+    () => voiceNotesAPI.list(noteFilters),
     {
       onError: () => {
         toast.error('Failed to load voice notes');
       },
     }
   );
+
+  const handleCreateFolder = async () => {
+    const name = newFolderName.trim();
+    if (!name) return;
+    try {
+      await foldersAPI.create({ name });
+      setNewFolderName('');
+      setShowNewFolder(false);
+      refetchFolders();
+      toast.success('Folder created');
+    } catch (error) {
+      toast.error('Failed to create folder');
+    }
+  };
 
   const { data: statsData } = useQuery(
     ['user-stats'],
@@ -155,6 +185,75 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Folder filter */}
+      <section aria-label="Folders">
+        <div className="flex items-center gap-2 flex-wrap">
+          <FolderIcon className="h-4 w-4 text-on-surface-variant" aria-hidden="true" />
+          {([
+            { key: 'all', label: 'All' },
+            { key: 'unfiled', label: 'Unfiled' },
+          ] as const).map((item) => (
+            <button
+              key={item.key}
+              onClick={() => setSelectedFolder(item.key)}
+              aria-pressed={selectedFolder === item.key}
+              className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+                selectedFolder === item.key
+                  ? 'bg-primary text-on-primary'
+                  : 'bg-surface-variant/40 text-on-surface-variant hover:bg-surface-variant/70'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+
+          {folders.map((folder) => (
+            <button
+              key={folder.id}
+              onClick={() => setSelectedFolder(folder.id)}
+              aria-pressed={selectedFolder === folder.id}
+              className={`px-3 py-1.5 text-sm rounded-full transition-colors flex items-center gap-1.5 ${
+                selectedFolder === folder.id
+                  ? 'bg-primary text-on-primary'
+                  : 'bg-surface-variant/40 text-on-surface-variant hover:bg-surface-variant/70'
+              }`}
+            >
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: folder.color }} aria-hidden="true" />
+              {folder.parent ? `↳ ${folder.name}` : folder.name}
+            </button>
+          ))}
+
+          {showNewFolder ? (
+            <span className="flex items-center gap-1">
+              <input
+                autoFocus
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleCreateFolder();
+                  if (e.key === 'Escape') { setShowNewFolder(false); setNewFolderName(''); }
+                }}
+                placeholder="Folder name"
+                aria-label="New folder name"
+                maxLength={100}
+                className="px-3 py-1.5 text-sm rounded-full bg-surface border border-outline/40 focus:outline-none focus:border-primary"
+              />
+              <button onClick={handleCreateFolder} className="px-3 py-1.5 text-sm rounded-full bg-primary text-on-primary">
+                Add
+              </button>
+            </span>
+          ) : (
+            <button
+              onClick={() => setShowNewFolder(true)}
+              className="px-3 py-1.5 text-sm rounded-full bg-surface-variant/40 text-on-surface-variant hover:bg-surface-variant/70 flex items-center gap-1"
+              aria-label="Create a new folder"
+            >
+              <PlusIcon className="h-4 w-4" aria-hidden="true" /> New folder
+            </button>
+          )}
+        </div>
+      </section>
 
       {/* Notes Grid */}
       <section aria-label="Recent voice notes">

@@ -24,6 +24,33 @@ class Tag(models.Model):
         ]
 
 
+class Folder(models.Model):
+    """User-owned container for organizing voice notes.
+
+    Supports a single level of nesting (folder -> sub-folder) to cover the
+    "folders or sub categories" ask without an unbounded tree. Deleting a folder
+    never deletes its recordings (VoiceNote.folder is SET_NULL); they fall back
+    to "Unfiled".
+    """
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='folders')
+    name = models.CharField(max_length=100)
+    color = models.CharField(max_length=7, default='#3B82F6')
+    parent = models.ForeignKey(
+        'self', on_delete=models.CASCADE, null=True, blank=True, related_name='children'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        ordering = ['name']
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'parent', 'name'], name='unique_folder_per_parent'),
+        ]
+
+
 class VoiceNote(models.Model):
     LANGUAGE_CHOICES = [
         ('en', 'English'),
@@ -63,6 +90,9 @@ class VoiceNote(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='processing')
     error_message = models.TextField(blank=True)
     tags = models.ManyToManyField(Tag, blank=True, related_name='voice_notes')
+    folder = models.ForeignKey(
+        'Folder', on_delete=models.SET_NULL, null=True, blank=True, related_name='voice_notes'
+    )
     is_favorite = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

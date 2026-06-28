@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Tag, TranscriptionSegment, VoiceNote
+from .models import Folder, Tag, TranscriptionSegment, VoiceNote
 
 
 class UserScopedTagField(serializers.PrimaryKeyRelatedField):
@@ -16,6 +16,38 @@ class UserScopedTagField(serializers.PrimaryKeyRelatedField):
         if request is None or not request.user.is_authenticated:
             return Tag.objects.none()
         return Tag.objects.filter(user=request.user)
+
+
+class UserScopedFolderField(serializers.PrimaryKeyRelatedField):
+    """A folder reference must resolve only to a folder owned by the user.
+
+    Same IDOR guard as UserScopedTagField: scoping the queryset to request.user
+    makes a foreign folder id resolve to "does not exist".
+    """
+
+    def get_queryset(self):
+        request = self.context.get('request', None)
+        if request is None or not request.user.is_authenticated:
+            return Folder.objects.none()
+        return Folder.objects.filter(user=request.user)
+
+
+class FolderSerializer(serializers.ModelSerializer):
+    parent = UserScopedFolderField(allow_null=True, required=False)
+
+    class Meta:
+        model = Folder
+        fields = ('id', 'name', 'color', 'parent', 'created_at')
+        read_only_fields = ('id', 'created_at')
+
+    def validate_parent(self, value):
+        # Enforce a single level of nesting: a parent cannot itself be nested.
+        if value is not None and value.parent_id is not None:
+            raise serializers.ValidationError("Sub-folders can only be one level deep.")
+        # A folder cannot be its own parent (on update).
+        if self.instance is not None and value is not None and value.pk == self.instance.pk:
+            raise serializers.ValidationError("A folder cannot be its own parent.")
+        return value
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -42,6 +74,8 @@ class VoiceNoteListSerializer(serializers.ModelSerializer):
     audio_url = serializers.SerializerMethodField()
     transcription_text = serializers.CharField(source='transcription', read_only=True)
     transcription_confidence = serializers.FloatField(source='confidence_score', read_only=True)
+    folder = serializers.PrimaryKeyRelatedField(read_only=True)
+    folder_name = serializers.CharField(source='folder.name', read_only=True, default=None)
 
     class Meta:
         model = VoiceNote
@@ -49,12 +83,12 @@ class VoiceNoteListSerializer(serializers.ModelSerializer):
             'id', 'title', 'username', 'status', 'duration', 'file_size_mb',
             'language_detected', 'confidence_score', 'is_favorite', 'audio_file', 'audio_url',
             'transcription_text', 'transcription_confidence',
-            'tags', 'created_at', 'updated_at'
+            'tags', 'folder', 'folder_name', 'created_at', 'updated_at'
         )
         read_only_fields = (
             'id', 'username', 'file_size_mb', 'language_detected', 'audio_file', 'audio_url',
             'confidence_score', 'transcription_text', 'transcription_confidence',
-            'created_at', 'updated_at'
+            'folder', 'folder_name', 'created_at', 'updated_at'
         )
 
     def get_audio_url(self, obj):
@@ -78,13 +112,16 @@ class VoiceNoteDetailSerializer(serializers.ModelSerializer):
     file_size_mb = serializers.ReadOnlyField()
     username = serializers.CharField(source='user.username', read_only=True)
     audio_url = serializers.SerializerMethodField()
+    folder = UserScopedFolderField(allow_null=True, required=False)
+    folder_name = serializers.CharField(source='folder.name', read_only=True, default=None)
 
     class Meta:
         model = VoiceNote
         fields = (
             'id', 'title', 'transcription', 'username', 'audio_file', 'audio_url',
             'duration', 'file_size_mb', 'language_detected', 'confidence_score',
-            'status', 'error_message', 'is_favorite', 'tags', 'tag_ids', 'segments',
+            'status', 'error_message', 'is_favorite', 'tags', 'tag_ids',
+            'folder', 'folder_name', 'segments',
             'created_at', 'updated_at'
         )
         read_only_fields = (
@@ -118,11 +155,12 @@ class VoiceNoteCreateSerializer(serializers.ModelSerializer):
         many=True,
         required=False
     )
+    folder = UserScopedFolderField(allow_null=True, required=False)
     title = serializers.CharField(max_length=255, required=False, allow_blank=True)
 
     class Meta:
         model = VoiceNote
-        fields = ('audio_file', 'title', 'tag_ids')
+        fields = ('audio_file', 'title', 'tag_ids', 'folder')
 
     def validate_audio_file(self, value):
         if not value:

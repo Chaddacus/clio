@@ -47,6 +47,14 @@ export interface Tag {
   created_at: string;
 }
 
+export interface Folder {
+  id: number;
+  name: string;
+  color: string;
+  parent: number | null;
+  created_at: string;
+}
+
 export interface TranscriptionSegment {
   id: number;
   start_time: number;
@@ -72,6 +80,8 @@ export interface VoiceNote {
   error_message: string;
   is_favorite: boolean;
   tags: Tag[];
+  folder: number | null;
+  folder_name: string | null;
   segments: TranscriptionSegment[];
   created_at: string;
   updated_at: string;
@@ -88,6 +98,8 @@ export interface VoiceNoteListItem {
   confidence_score: number | null;
   is_favorite: boolean;
   tags: Tag[];
+  folder: number | null;
+  folder_name: string | null;
   created_at: string;
   updated_at: string;
   audio_file?: string; // URL path to audio file
@@ -99,6 +111,7 @@ export interface CreateVoiceNoteData {
   audio_file: File;
   title?: string;
   tag_ids?: number[];
+  folder?: number | null;
 }
 
 export interface UpdateVoiceNoteData {
@@ -106,6 +119,7 @@ export interface UpdateVoiceNoteData {
   transcription?: string;
   is_favorite?: boolean;
   tag_ids?: number[];
+  folder?: number | null;
 }
 
 export interface PaginatedResponse<T> {
@@ -180,6 +194,8 @@ export interface VoiceNotesFilters {
   language_detected?: string;
   is_favorite?: boolean;
   tags?: number[];
+  folder?: number;
+  unfiled?: boolean;
   ordering?: string;
   page?: number;
   page_size?: number;

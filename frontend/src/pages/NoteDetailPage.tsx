@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from 'react-query';
 import { ArrowLeftIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
-import { voiceNotesAPI } from '../services/api';
+import { voiceNotesAPI, foldersAPI } from '../services/api';
 import AudioPlayer from '../components/NoteEditor/AudioPlayer';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import { getVoiceNoteAudioUrl } from '../utils/audioUtils';
@@ -46,6 +46,22 @@ const NoteDetailPage: React.FC = () => {
       enabled: !!noteId,
       onError: () => {
         toast.error('Failed to load voice note');
+      },
+    }
+  );
+
+  const { data: foldersData } = useQuery(['folders'], () => foldersAPI.list());
+  const folders = foldersData?.data || [];
+
+  const moveFolderMutation = useMutation(
+    (folder: number | null) => voiceNotesAPI.update(noteId, { folder }),
+    {
+      onSuccess: () => {
+        toast.success('Folder updated');
+        refetch();
+      },
+      onError: () => {
+        toast.error('Failed to move note');
       },
     }
   );
@@ -144,6 +160,27 @@ const NoteDetailPage: React.FC = () => {
             </>
           )}
         </div>
+      </div>
+
+      {/* Folder */}
+      <div className="card p-6">
+        <label htmlFor="folder-select" className="block text-xs font-medium text-on-surface-variant uppercase tracking-wider mb-2">
+          Folder
+        </label>
+        <select
+          id="folder-select"
+          value={note.folder ?? ''}
+          disabled={moveFolderMutation.isLoading}
+          onChange={(e) => moveFolderMutation.mutate(e.target.value === '' ? null : parseInt(e.target.value, 10))}
+          className="w-full px-3 py-2 bg-surface-container border-b border-outline-variant/15 text-on-surface focus:outline-none focus:border-secondary transition-colors"
+        >
+          <option value="">Unfiled</option>
+          {folders.map((folder) => (
+            <option key={folder.id} value={folder.id}>
+              {folder.parent ? `↳ ${folder.name}` : folder.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Audio Player */}
