@@ -15,9 +15,10 @@ from rest_framework.response import Response
 from apps.core.services import AudioProcessingService, get_transcription_service
 from apps.users.models import UserProfile
 
-from .models import Tag, TranscriptionSegment, VoiceNote
+from .models import Folder, Tag, TranscriptionSegment, VoiceNote
 from .serializers import (
     AudioTranscriptionSerializer,
+    FolderSerializer,
     TagSerializer,
     VoiceNoteCreateSerializer,
     VoiceNoteDetailSerializer,
@@ -60,16 +61,21 @@ def _update_storage(user: Any, delta_bytes: int) -> None:
 class VoiceNoteListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['status', 'language_detected', 'is_favorite', 'tags']
+    filterset_fields = ['status', 'language_detected', 'is_favorite', 'tags', 'folder']
     search_fields = ['title', 'transcription']
     ordering_fields = ['created_at', 'updated_at', 'title', 'duration']
     ordering = ['-created_at']
     parser_classes = [MultiPartParser, FormParser]
 
     def get_queryset(self):
-        return VoiceNote.objects.filter(
+        qs = VoiceNote.objects.filter(
             user=self.request.user
-        ).select_related('user').prefetch_related('tags', 'segments')
+        ).select_related('user', 'folder').prefetch_related('tags', 'segments')
+        # `?folder=<id>` is handled by the filterset; null can't be expressed as
+        # an exact match, so `?unfiled=true` selects notes with no folder.
+        if self.request.query_params.get('unfiled') == 'true':
+            qs = qs.filter(folder__isnull=True)
+        return qs
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -141,6 +147,26 @@ class TagDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         return Tag.objects.filter(user=self.request.user)
+
+
+class FolderListCreateView(generics.ListCreateAPIView):
+    serializer_class = FolderSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = None  # small per-user list; return a flat array for the sidebar
+
+    def get_queryset(self):
+        return Folder.objects.filter(user=self.request.user).select_related('parent')
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class FolderDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = FolderSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Folder.objects.filter(user=self.request.user)
 
 
 @api_view(['POST'])

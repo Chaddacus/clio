@@ -8,6 +8,8 @@ urlpatterns = [
     path('notes/<int:pk>/retranscribe/', views.retranscribe_voice_note, name='voicenote-retranscribe'),
     path('tags/', views.TagListCreateView.as_view(), name='tag-list-create'),
     path('tags/<int:pk>/', views.TagDetailView.as_view(), name='tag-detail'),
+    path('folders/', views.FolderListCreateView.as_view(), name='folder-list-create'),
+    path('folders/<int:pk>/', views.FolderDetailView.as_view(), name='folder-detail'),
     path('transcribe/', views.transcribe_audio, name='transcribe-audio'),
     path('stats/', views.user_stats, name='user-stats'),
 ]

@@ -1,8 +1,8 @@
 import axios, { AxiosResponse } from 'axios';
-import { 
+import {
   User, AuthTokens, RegisterData, LoginData, UserProfile,
   VoiceNote, VoiceNoteListItem, CreateVoiceNoteData, UpdateVoiceNoteData,
-  Tag, PaginatedResponse, UserStats, TranscriptionResult, ApiResponse,
+  Tag, Folder, PaginatedResponse, UserStats, TranscriptionResult, ApiResponse,
   VoiceNotesFilters
 } from '../types';
 
@@ -100,6 +100,10 @@ export const voiceNotesAPI = {
       data.tag_ids.forEach(id => formData.append('tag_ids', id.toString()));
     }
 
+    if (data.folder !== undefined && data.folder !== null) {
+      formData.append('folder', data.folder.toString());
+    }
+
     return api.post('/notes/', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -152,6 +156,21 @@ export const tagsAPI = {
     
   delete: (id: number): Promise<AxiosResponse<void>> =>
     api.delete(`/tags/${id}/`),
+};
+
+// Folders API
+export const foldersAPI = {
+  list: (): Promise<AxiosResponse<Folder[]>> =>
+    api.get('/folders/'),
+
+  create: (data: { name: string; color?: string; parent?: number | null }): Promise<AxiosResponse<Folder>> =>
+    api.post('/folders/', data),
+
+  update: (id: number, data: Partial<{ name: string; color: string; parent: number | null }>): Promise<AxiosResponse<Folder>> =>
+    api.patch(`/folders/${id}/`, data),
+
+  delete: (id: number): Promise<AxiosResponse<void>> =>
+    api.delete(`/folders/${id}/`),
 };
 
 export default api;
