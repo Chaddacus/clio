@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "repo": "Chaddacus/clio",
+  "default_branch": "main",
+  "integration_branch": "dev",
+  "trigger_label": "codex",
+  "agent": "codex",
+
+  "commands": {
+    "test": "docker compose exec -T backend pytest -p no:cacheprovider && (cd frontend && npx tsc --noEmit)",
+    "deploy_prod": "ssh linode 'cd /root/clio && git pull --ff-only && docker compose -f docker-compose.prod.yml up -d --build backend celery && docker compose -f docker-compose.prod.yml restart frontend'",
+    "smoke": "curl -fsS https://clio.chadacus.dev/api/health/"
+  },
+
+  "supervisor": {
+    "protected_branches": ["main"],
+    "max_changed_files": 20,
+    "max_added_lines": 600,
+    "sensitive_paths": [
+      "backend/config/settings.py",
+      "backend/apps/users/**",
+      "backend/apps/core/auth.py",
+      "backend/apps/core/exception_handler.py",
+      "backend/apps/core/middleware.py",
+      "backend/**/migrations/**",
+      ".github/**",
+      "docker-compose*.yml",
+      "backend/requirements.txt",
+      "frontend/package.json",
+      "**/Dockerfile",
+      "**/*.env*"
+    ],
+    "escalate_on": ["new_dependency", "new_network_host", "secret_literal"]
+  },
+
+  "deploy_note": "The deploy MUST restart the frontend LAST. Recreating the backend container gives it a new IP; the frontend nginx caches the old upstream and 502s every /api call until the frontend is restarted."
+}
