@@ -1,0 +1,9 @@
+# Dependencies for running the Clio MCP server (clio_mcp/server.py).
+# Kept separate from requirements.txt because `mcp` pulls
+# python-multipart>=0.0.9, which conflicts with the core backend pins, and the
+# web/celery backend image does not run the MCP server. Install this only in
+# the environment that hosts the MCP server:
+#
+#     pip install -r requirements.txt -r requirements-mcp.txt
+#
+mcp>=1.9.3

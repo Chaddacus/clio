@@ -28,8 +28,9 @@ redis==5.0.1
 # Observability
 python-json-logger==2.0.7
 
-# MCP server (wren/openclaw agent access to tracing + support queue)
-mcp>=1.9.3
+# Note: the Clio MCP server's dependency (mcp) lives in requirements-mcp.txt,
+# not here — it pulls python-multipart>=0.0.9 which conflicts with the core
+# pins, and the web/celery backend image does not run the MCP server.
 
 # Linting & type checking
 ruff==0.1.9
