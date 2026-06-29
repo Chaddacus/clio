@@ -21,12 +21,15 @@ Controlled write (support lifecycle only — never user notes or other data):
 
 ```bash
 cd backend
+pip install -r requirements.txt -r requirements-mcp.txt
 DJANGO_SETTINGS_MODULE=config.settings \
 python -m clio_mcp.server --transport streamable-http --port 8123
 ```
 
-Requires `mcp>=1.9.3` (in requirements.txt) and DB access via the usual
-`DATABASE_URL`. Runs `django.setup()` and queries the ORM directly.
+The `mcp` dependency lives in `requirements-mcp.txt` (kept out of the core
+backend image — it conflicts with the core pins and the web/celery backend
+does not run this server). Needs DB access via the usual `DATABASE_URL`; runs
+`django.setup()` and queries the ORM directly.
 
 ## Register with the gateway
 
