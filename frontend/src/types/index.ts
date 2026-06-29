@@ -71,6 +71,20 @@ export interface Speaker {
   name: string;
 }
 
+export type SupportKind = 'bug' | 'change' | 'feature';
+
+export interface SupportRequest {
+  id: number;
+  kind: SupportKind;
+  body: string;
+  trace_id: string;
+  status: 'needs_detail' | 'submitted' | 'issue_created' | 'in_progress' | 'shipped' | 'rejected';
+  gate_reason: string;
+  github_issue_number: number | null;
+  github_issue_url: string;
+  created_at: string;
+}
+
 export interface VoiceNote {
   id: number;
   title: string;

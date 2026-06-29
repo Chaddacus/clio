@@ -1,0 +1,21 @@
+{
+  "clio": {
+    "transport": "http",
+    "url": "http://mcp-clio:8123/mcp",
+    "command": [
+      "python",
+      "-m",
+      "clio_mcp.server",
+      "--transport",
+      "streamable-http",
+      "--port",
+      "8123"
+    ],
+    "cwd": "/Users/chadsimon/code/personal/clio-sec/backend",
+    "env": {
+      "DJANGO_SETTINGS_MODULE": "config.settings"
+    },
+    "secret_groups": [],
+    "description": "Clio voice-notes app: end-to-end tracing, support-request queue, and health for the wren self-heal loop. Read-only except support-request lifecycle status."
+  }
+}
