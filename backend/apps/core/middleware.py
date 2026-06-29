@@ -9,6 +9,17 @@ def get_request_id() -> str:
     return _request_id.get()
 
 
+def set_request_id(value: str) -> str:
+    """Set the active trace/request id (used to carry it into Celery tasks).
+
+    Returns the value actually set, generating one if none was provided so a
+    task always runs under a non-empty trace id.
+    """
+    value = value or str(uuid.uuid4())
+    _request_id.set(value)
+    return value
+
+
 class RequestIDMiddleware:
     """Inject or generate X-Request-ID for every request."""
 

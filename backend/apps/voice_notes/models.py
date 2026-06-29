@@ -89,6 +89,11 @@ class VoiceNote(models.Model):
     )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='processing')
     error_message = models.TextField(blank=True)
+    trace_id = models.CharField(
+        max_length=64, blank=True, default='',
+        help_text="End-to-end trace/correlation id linking this note's frontend request, "
+                  "transcription task, and external API calls in the logs.",
+    )
     tags = models.ManyToManyField(Tag, blank=True, related_name='voice_notes')
     folder = models.ForeignKey(
         'Folder', on_delete=models.SET_NULL, null=True, blank=True, related_name='voice_notes'

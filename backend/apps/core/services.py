@@ -215,7 +215,12 @@ class DeepgramTranscriptionService:
             if not audio_bytes:
                 raise ValueError("Audio file is empty")
 
+            api_started = time.monotonic()
             payload = self._post_with_retry(audio_bytes, self._content_type(file_name), language)
+            logger.info(
+                "Deepgram API call returned in %d ms (%d bytes sent)",
+                int((time.monotonic() - api_started) * 1000), len(audio_bytes),
+            )
 
             results = payload.get('results', {}) or {}
             channels = results.get('channels', []) or []
