@@ -118,6 +118,9 @@ jobs:
         run: docker compose up -d
         env:
           OPENAI_API_KEY: 'test-key-not-real'
+          # One runner address drives the whole suite; the production default
+          # (60/minute) throttles legitimate test traffic. CI-only value.
+          THROTTLE_ANON_RATE: '1000/minute'
       - name: Wait for backend health
         run: |
           timeout 90 bash -c 'until curl -sf http://localhost:8011/api/health/ > /dev/null 2>&1; do sleep 3; done'
