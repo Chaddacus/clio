@@ -1,0 +1,24 @@
+{
+  "$comment": "Clio verification profile. Backend commands assume a Postgres on 127.0.0.1:5436 (docker run --name clio-testdb -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=voice_notes_db -p 127.0.0.1:5436:5432 postgres:16) and the env DEBUG=True SECRET_KEY=test DB_HOST=127.0.0.1 DB_PORT=5436 DB_USER=postgres DB_PASSWORD=postgres DB_NAME=voice_notes_db. Frontend browser checks need the dev compose stack on localhost:3011.",
+  "fast": [
+    { "name": "backend-checks", "command": "cd backend && .venv/bin/python manage.py check" },
+    { "name": "frontend-typecheck", "command": "cd frontend && npx tsc --noEmit" }
+  ],
+  "module": {
+    "voice_notes": [
+      { "name": "unit", "command": "cd backend && .venv/bin/python -m pytest tests/test_tasks.py tests/test_language_detection.py tests/test_cors_preflight.py" },
+      { "name": "live-provider", "command": "cd backend && .venv/bin/python -m pytest tests/live -m live" },
+      { "name": "ui-multilingual", "command": "cd frontend && npx playwright test e2e/tests/multilingual-upload.spec.js", "browser": true }
+    ],
+    "translations": [
+      { "name": "unit", "command": "cd backend && .venv/bin/python -m pytest tests/test_translations.py" },
+      { "name": "capability-evals", "command": "cd backend && .venv/bin/python -m pytest evals/translation -m ai_eval", "ai_eval": true },
+      { "name": "ui-translation", "command": "cd frontend && npx playwright test e2e/tests/translation.spec.js", "browser": true }
+    ]
+  },
+  "full": [
+    { "name": "backend-all", "command": "cd backend && .venv/bin/python -m pytest" },
+    { "name": "frontend-build", "command": "cd frontend && CI=true npm run build" },
+    { "name": "e2e", "command": "cd frontend && npx playwright test", "browser": true }
+  ]
+}

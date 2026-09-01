@@ -39,6 +39,7 @@ LOCAL_APPS = [
     'apps.api',
     'apps.voice_notes',
     'apps.users',
+    'apps.translations',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -191,6 +192,7 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
+    'x-request-id',  # browser-originated trace id (see RequestIDMiddleware); without it cross-origin note creation fails preflight
     'range',  # Important for audio/video streaming
 ]
 
@@ -210,6 +212,14 @@ WHISPER_MAX_SENTENCE_LENGTH = config('WHISPER_MAX_SENTENCE_LENGTH', default=150,
 DEEPGRAM_API_KEY = config('DEEPGRAM_API_KEY', default='')
 DEEPGRAM_MODEL = config('DEEPGRAM_MODEL', default='nova-3')
 DEEPGRAM_BASE_URL = config('DEEPGRAM_BASE_URL', default='https://api.deepgram.com')
+
+# Transcript translation (apps.translations). Deepgram only transcribes; the
+# translation step is an LLM call through the Anthropic SDK. When the key is
+# empty the translate endpoint answers 503 and the UI hides the control.
+ANTHROPIC_API_KEY = config('ANTHROPIC_API_KEY', default='')
+CLIO_TRANSLATION_MODEL = config('CLIO_TRANSLATION_MODEL', default='claude-opus-5')
+CLIO_TRANSLATION_EFFORT = config('CLIO_TRANSLATION_EFFORT', default='medium')
+CLIO_TRANSLATION_TIMEOUT_SECONDS = config('CLIO_TRANSLATION_TIMEOUT_SECONDS', default=120.0, cast=float)
 
 # Self-heal support pipeline. When GITHUB_TOKEN + GITHUB_REPO are set, a
 # sufficient support request is turned into a `codex`-labelled GitHub issue;
