@@ -36,7 +36,7 @@ test.describe('Multilingual transcription', () => {
 
     const badge = page.getByTestId('note-language');
     await expect(badge).toHaveText('Spanish');
-    await expect(badge).toHaveAttribute('lang', 'es');
+    await expect(badge).toHaveAttribute('data-language', 'es');
 
     const body = (await page.textContent('main, body')).toLowerCase();
     expect(body).toContain('hermana');

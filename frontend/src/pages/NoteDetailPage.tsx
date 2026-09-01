@@ -280,7 +280,9 @@ const NoteDetailPage: React.FC = () => {
           {note.language_detected && note.language_detected !== 'auto' && (
             <>
               <span>·</span>
-              <span data-testid="note-language" lang={note.language_detected}>
+              {/* The label itself is English, so no `lang` here; the detected code is
+                  exposed as data for tests and tooling. */}
+              <span data-testid="note-language" data-language={note.language_detected}>
                 {languageLabel(note.language_detected)}
               </span>
             </>
