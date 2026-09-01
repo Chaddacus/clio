@@ -3,53 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from 'react-query';
 import { ArrowLeftIcon, ArrowPathIcon, PencilIcon } from '@heroicons/react/24/outline';
 import { voiceNotesAPI, foldersAPI, speakersAPI } from '../services/api';
-import { Speaker, TranscriptionSegment } from '../types';
+import { Speaker } from '../types';
 import AudioPlayer from '../components/NoteEditor/AudioPlayer';
+import TranslationPanel from '../components/NoteEditor/TranslationPanel';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import { getVoiceNoteAudioUrl } from '../utils/audioUtils';
+import { LANGUAGE_OPTIONS, formatTimestamp, groupBySpeaker, languageLabel } from '../utils/transcript';
 import toast from 'react-hot-toast';
-
-const formatTimestamp = (seconds: number): string =>
-  `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
-
-interface SpeakerTurn {
-  speakerLabel: string;
-  start: number;
-  segments: TranscriptionSegment[];
-}
-
-// Languages the app offers for transcription. Mirrors VoiceNote.LANGUAGE_CHOICES
-// on the backend; the badge and the re-transcribe dialog both read from here.
-const LANGUAGE_OPTIONS = [
-  { value: 'auto', label: 'Auto-detect' },
-  { value: 'en', label: 'English' },
-  { value: 'es', label: 'Spanish' },
-  { value: 'fr', label: 'French' },
-  { value: 'de', label: 'German' },
-  { value: 'it', label: 'Italian' },
-  { value: 'pt', label: 'Portuguese' },
-  { value: 'ja', label: 'Japanese' },
-  { value: 'ko', label: 'Korean' },
-  { value: 'zh', label: 'Chinese' },
-];
-
-// Human label for a detected language code; unknown codes show as-is.
-const languageLabel = (code: string): string =>
-  LANGUAGE_OPTIONS.find((o) => o.value === code)?.label ?? code;
-
-// Collapse consecutive same-speaker segments into a single turn for display.
-const groupBySpeaker = (segments: TranscriptionSegment[]): SpeakerTurn[] => {
-  const turns: SpeakerTurn[] = [];
-  for (const seg of segments) {
-    const last = turns[turns.length - 1];
-    if (last && last.speakerLabel === seg.speaker_id) {
-      last.segments.push(seg);
-    } else {
-      turns.push({ speakerLabel: seg.speaker_id, start: seg.start_time, segments: [seg] });
-    }
-  }
-  return turns;
-};
 
 // Inline-editable speaker name. Click to edit; Enter/blur saves, Escape cancels.
 const SpeakerName: React.FC<{
@@ -462,6 +422,15 @@ const NoteDetailPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Translation */}
+      <TranslationPanel
+        noteId={note.id}
+        noteStatus={note.status}
+        sourceLanguage={note.language_detected}
+        segments={note.segments}
+        speakers={note.speakers}
+      />
 
       {/* Tags */}
       {note.tags.length > 0 && (

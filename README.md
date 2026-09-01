@@ -201,6 +201,13 @@ WHISPER_FORMAT_TEXT=true
 WHISPER_PARAGRAPH_BREAK_SECONDS=2.0
 WHISPER_MAX_SENTENCE_LENGTH=150
 
+# Transcript translation (optional). Deepgram only transcribes; translating a
+# note into another language is one Claude call through the Anthropic SDK.
+# Leave the key empty to disable: the API answers 503 and the UI hides the control.
+ANTHROPIC_API_KEY=
+CLIO_TRANSLATION_MODEL=claude-opus-5
+CLIO_TRANSLATION_EFFORT=medium
+
 # Frontend Configuration
 REACT_APP_API_URL=http://localhost:8011/api
 ```
@@ -338,11 +345,22 @@ class WhisperTranscriptionService:
   responses) and `tests/live/` (real audio fixtures through real Deepgram, run with
   `pytest -m live`; excluded from the default run). Fixtures live in
   `tests/fixtures/audio/`; see `docs/adr/004-language-detection-strategy.md`.
+- Translation (`apps/translations`) is tested with a faked provider in
+  `tests/test_translations.py`. The real-provider eval suite lives in
+  `evals/translation/` (`pytest evals/translation -m ai_eval`, needs
+  `ANTHROPIC_API_KEY`; it fails, not skips, without it). Contract and suite:
+  `docs/ai/translation-capability-contract.md`, `docs/ai/translation-eval-suite.md`.
 
 ### Frontend (Playwright E2E)
 - Auth setup: register + login with storage state persistence
 - Dashboard, profile, and health check specs
 - Login-first flow per CLAUDE.md requirements
+- `translation.spec.js` proves the translation panel states with mocked API
+  responses; its live test needs both provider keys and `CLIO_LIVE_TRANSLATION=1`.
+
+### Verification profile
+`.claude/verification.json` declares the FAST / MODULE / FULL commands per module
+for the engineering-foundation `verify-*` skills.
 
 ### Running Tests
 ```bash

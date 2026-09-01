@@ -47,6 +47,8 @@ services:
       - WHISPER_MODEL=${WHISPER_MODEL:-whisper-1}
       - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY:-}
       - DEEPGRAM_MODEL=${DEEPGRAM_MODEL:-nova-3}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - CLIO_TRANSLATION_MODEL=${CLIO_TRANSLATION_MODEL:-claude-opus-5}
       - ALLOWED_HOSTS=localhost,127.0.0.1,backend
       - REDIS_URL=redis://redis:6379/0
       - PYTHONDONTWRITEBYTECODE=1
@@ -109,6 +111,8 @@ services:
       - WHISPER_MODEL=${WHISPER_MODEL:-whisper-1}
       - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY:-}
       - DEEPGRAM_MODEL=${DEEPGRAM_MODEL:-nova-3}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - CLIO_TRANSLATION_MODEL=${CLIO_TRANSLATION_MODEL:-claude-opus-5}
       - REDIS_URL=redis://redis:6379/0
     volumes:
       - ./backend:/app
