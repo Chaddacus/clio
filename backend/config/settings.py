@@ -191,6 +191,7 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
+    'x-request-id',  # browser-originated trace id (see RequestIDMiddleware); without it cross-origin note creation fails preflight
     'range',  # Important for audio/video streaming
 ]
 
