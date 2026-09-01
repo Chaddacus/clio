@@ -53,6 +53,9 @@ services:
       - CLIO_TRANSLATION_TIMEOUT_SECONDS=${CLIO_TRANSLATION_TIMEOUT_SECONDS:-120}
       - ALLOWED_HOSTS=localhost,127.0.0.1,backend
       - REDIS_URL=redis://redis:6379/0
+      # Anonymous throttle (settings.py default 60/minute). CI raises it: the
+      # e2e suite sends all its anonymous traffic from one address in one minute.
+      - THROTTLE_ANON_RATE=${THROTTLE_ANON_RATE:-60/minute}
       - PYTHONDONTWRITEBYTECODE=1
     volumes:
       - ./backend:/app
@@ -125,6 +128,11 @@ services:
       db:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      # Start after the backend so the two services do not race to populate the
+      # shared media_files volume (Docker copies /app/media from whichever image
+      # mounts the empty volume first; two at once fail with "file exists").
+      backend:
         condition: service_healthy
 
 volumes:

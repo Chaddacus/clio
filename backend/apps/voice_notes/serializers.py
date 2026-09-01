@@ -33,12 +33,24 @@ class UserScopedFolderField(serializers.PrimaryKeyRelatedField):
 
 
 class FolderSerializer(serializers.ModelSerializer):
-    parent = UserScopedFolderField(allow_null=True, required=False)
-
     class Meta:
         model = Folder
         fields = ('id', 'name', 'color', 'parent', 'created_at')
         read_only_fields = ('id', 'created_at')
+
+    def get_fields(self):
+        """Replace the auto-built ``parent`` field with the user-scoped one.
+
+        ``parent`` cannot be declared as a class attribute the way the other
+        scoped fields are: DRF's ``Field.parent`` already owns that name on the
+        base class, so a class-level assignment reads as an override of an
+        unrelated attribute even though the serializer metaclass moves declared
+        fields out of the class namespace. Installing the field here yields the
+        identical field map without the name collision.
+        """
+        fields = super().get_fields()
+        fields['parent'] = UserScopedFolderField(allow_null=True, required=False)
+        return fields
 
     def validate_parent(self, value):
         # Enforce a single level of nesting: a parent cannot itself be nested.
@@ -87,7 +99,7 @@ class VoiceNoteListSerializer(serializers.ModelSerializer):
     audio_url = serializers.SerializerMethodField()
     transcription_text = serializers.CharField(source='transcription', read_only=True)
     transcription_confidence = serializers.FloatField(source='confidence_score', read_only=True)
-    folder = serializers.PrimaryKeyRelatedField(read_only=True)
+    folder: 'serializers.PrimaryKeyRelatedField[Folder]' = serializers.PrimaryKeyRelatedField(read_only=True)
     folder_name = serializers.CharField(source='folder.name', read_only=True, default=None)
 
     class Meta:

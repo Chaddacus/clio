@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   MicrophoneIcon,
   NoSymbolIcon,
-  ExclamationTriangleIcon,
   CheckCircleIcon,
   InformationCircleIcon
 } from '@heroicons/react/24/outline';
@@ -24,11 +23,12 @@ const MicrophonePermission: React.FC<MicrophonePermissionProps> = ({
   const [isRequesting, setIsRequesting] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
+  const onPermissionChangeRef = useRef(onPermissionChange);
   useEffect(() => {
-    checkPermissionStatus();
-  }, []);
+    onPermissionChangeRef.current = onPermissionChange;
+  }, [onPermissionChange]);
 
-  const checkPermissionStatus = async () => {
+  const checkPermissionStatus = useCallback(async () => {
     setPermissionState('checking');
     
     try {
@@ -40,24 +40,28 @@ const MicrophonePermission: React.FC<MicrophonePermissionProps> = ({
         
         const state = permissionStatus.state as PermissionState;
         setPermissionState(state);
-        onPermissionChange(state === 'granted');
+        onPermissionChangeRef.current(state === 'granted');
         
         // Listen for permission changes
         permissionStatus.onchange = () => {
           const newState = permissionStatus.state as PermissionState;
           setPermissionState(newState);
-          onPermissionChange(newState === 'granted');
+          onPermissionChangeRef.current(newState === 'granted');
         };
       } else {
         // Fallback: assume we need to prompt
         setPermissionState('prompt');
-        onPermissionChange(false);
+        onPermissionChangeRef.current(false);
       }
     } catch (_error) {
       setPermissionState('prompt');
-      onPermissionChange(false);
+      onPermissionChangeRef.current(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    checkPermissionStatus();
+  }, [checkPermissionStatus]);
 
   const requestPermission = async () => {
     setIsRequesting(true);

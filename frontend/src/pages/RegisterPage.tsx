@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MicrophoneIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../hooks/useAuth';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 
@@ -188,14 +187,7 @@ const RegisterPage: React.FC = () => {
 
             <div className="text-center">
               <p className="text-xs text-on-surface-variant/60">
-                By creating an account, you agree to our{' '}
-                <a href="#" className="hover:text-primary transition-colors">
-                  Terms of Service
-                </a>{' '}
-                and{' '}
-                <a href="#" className="hover:text-primary transition-colors">
-                  Privacy Policy
-                </a>.
+                By creating an account, you agree to our Terms of Service and Privacy Policy.
               </p>
             </div>
           </form>

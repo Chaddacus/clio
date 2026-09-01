@@ -59,6 +59,15 @@ class TestFolderCrud:
         resp = api_client.post('/api/folders/', {'name': 'Mine', 'parent': foreign.id})
         assert resp.status_code == status.HTTP_400_BAD_REQUEST
 
+    def test_cannot_reparent_to_another_users_folder_on_update(self, api_client, user, user_b):
+        mine = Folder.objects.create(user=user, name='Mine')
+        foreign = Folder.objects.create(user=user_b, name='Foreign')
+        _auth(api_client, user)
+        resp = api_client.patch(f'/api/folders/{mine.id}/', {'parent': foreign.id})
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        mine.refresh_from_db()
+        assert mine.parent is None
+
 
 @pytest.mark.django_db
 class TestNoteFolderAssignment:
