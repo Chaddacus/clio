@@ -22,8 +22,12 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    // The refresh call itself must not trigger another refresh: its 401 means
+    // there is no session, and re-entering here would loop forever (the loop
+    // was only ever cut short by the anon throttle answering 429).
+    const isRefreshCall = typeof originalRequest?.url === 'string' && originalRequest.url.includes('/auth/refresh/');
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && !originalRequest._retry && !isRefreshCall) {
       originalRequest._retry = true;
 
       // Don't attempt refresh if we're already on the login/register page
