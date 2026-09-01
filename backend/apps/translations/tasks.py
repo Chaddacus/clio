@@ -19,6 +19,7 @@ import logging
 import time
 
 from celery import shared_task
+from django.utils import timezone
 
 from apps.core.middleware import set_request_id
 
@@ -97,8 +98,11 @@ def translate_voice_note_task(self, translation_id: int, trace_id: str = '') -> 
 
 
 def _write(translation: NoteTranslation, **fields) -> bool:
-    """Conditional UPDATE of the row. False means it was invalidated meanwhile."""
-    updated = NoteTranslation.objects.filter(pk=translation.pk).update(**fields)
+    """Conditional UPDATE of the row. False means it was invalidated meanwhile.
+
+    QuerySet.update() bypasses auto_now, so updated_at is set here explicitly.
+    """
+    updated = NoteTranslation.objects.filter(pk=translation.pk).update(updated_at=timezone.now(), **fields)
     if not updated:
         logger.info("Translation %d was invalidated while in flight; result discarded", translation.pk)
     return bool(updated)

@@ -123,6 +123,7 @@ class TestTranslateTask:
         ]
         assert (t.provider, t.model, t.prompt_version) == ('fake', 'fake-1', 'translate-v1')
         assert (t.input_tokens, t.output_tokens, t.source_language) == (10, 20, 'es')
+        assert t.updated_at > t.created_at  # the conditional UPDATE must still bump auto_now
         assert provider.calls[0][1:] == ('es', 'en')
         # The note itself is untouched.
         note.refresh_from_db()
