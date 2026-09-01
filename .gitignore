@@ -53,3 +53,5 @@ logs/
 # Temporary files
 *.tmp
 *.temp
+# Playwright saved login state for the local test user
+frontend/playwright/.auth/

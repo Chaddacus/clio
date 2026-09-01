@@ -18,6 +18,25 @@ interface SpeakerTurn {
   segments: TranscriptionSegment[];
 }
 
+// Languages the app offers for transcription. Mirrors VoiceNote.LANGUAGE_CHOICES
+// on the backend; the badge and the re-transcribe dialog both read from here.
+const LANGUAGE_OPTIONS = [
+  { value: 'auto', label: 'Auto-detect' },
+  { value: 'en', label: 'English' },
+  { value: 'es', label: 'Spanish' },
+  { value: 'fr', label: 'French' },
+  { value: 'de', label: 'German' },
+  { value: 'it', label: 'Italian' },
+  { value: 'pt', label: 'Portuguese' },
+  { value: 'ja', label: 'Japanese' },
+  { value: 'ko', label: 'Korean' },
+  { value: 'zh', label: 'Chinese' },
+];
+
+// Human label for a detected language code; unknown codes show as-is.
+const languageLabel = (code: string): string =>
+  LANGUAGE_OPTIONS.find((o) => o.value === code)?.label ?? code;
+
 // Collapse consecutive same-speaker segments into a single turn for display.
 const groupBySpeaker = (segments: TranscriptionSegment[]): SpeakerTurn[] => {
   const turns: SpeakerTurn[] = [];
@@ -196,18 +215,7 @@ const NoteDetailPage: React.FC = () => {
     }
   );
 
-  const languageOptions = [
-    { value: 'auto', label: 'Auto-detect' },
-    { value: 'en', label: 'English' },
-    { value: 'es', label: 'Spanish' },
-    { value: 'fr', label: 'French' },
-    { value: 'de', label: 'German' },
-    { value: 'it', label: 'Italian' },
-    { value: 'pt', label: 'Portuguese' },
-    { value: 'ja', label: 'Japanese' },
-    { value: 'ko', label: 'Korean' },
-    { value: 'zh', label: 'Chinese' },
-  ];
+  const languageOptions = LANGUAGE_OPTIONS;
 
   const handleRetranscribe = () => {
     retranscribeMutation.mutate({ language: selectedLanguage });
@@ -272,7 +280,11 @@ const NoteDetailPage: React.FC = () => {
           {note.language_detected && note.language_detected !== 'auto' && (
             <>
               <span>·</span>
-              <span>{note.language_detected}</span>
+              {/* The label itself is English, so no `lang` here; the detected code is
+                  exposed as data for tests and tooling. */}
+              <span data-testid="note-language" data-language={note.language_detected}>
+                {languageLabel(note.language_detected)}
+              </span>
             </>
           )}
         </div>

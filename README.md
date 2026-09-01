@@ -334,6 +334,10 @@ class WhisperTranscriptionService:
 ### Backend (pytest-django)
 - 25+ tests covering auth, voice notes, serializers, API contracts
 - Runs against SQLite in CI, PostgreSQL in Docker
+- Language handling is pinned by `tests/test_language_detection.py` (recorded provider
+  responses) and `tests/live/` (real audio fixtures through real Deepgram, run with
+  `pytest -m live`; excluded from the default run). Fixtures live in
+  `tests/fixtures/audio/`; see `docs/adr/004-language-detection-strategy.md`.
 
 ### Frontend (Playwright E2E)
 - Auth setup: register + login with storage state persistence
