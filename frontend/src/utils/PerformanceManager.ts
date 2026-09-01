@@ -96,6 +96,11 @@ export class PerformanceManager {
         result += Math.sqrt(i) * Math.sin(i / 1000);
       }
       
+      // Read the accumulator so the timed loop cannot be optimised away.
+      if (!Number.isFinite(result)) {
+        console.warn('[PerformanceManager] CPU benchmark produced a non-finite result');
+      }
+
       const cpuTime = performance.now() - startTime;
       
       // Canvas benchmark: Drawing operations
@@ -266,7 +271,6 @@ export class PerformanceManager {
    * Downgrade quality settings to improve performance
    */
   private downgradeQuality(): void {
-    const currentTier = this.getCurrentTier();
     let newSettings = { ...this.qualitySettings };
     
     // Progressive degradation steps

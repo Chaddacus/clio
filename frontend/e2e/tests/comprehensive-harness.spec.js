@@ -100,7 +100,7 @@ test.describe('Authenticated', () => {
     });
 
     test('page loads with header and recorder', async ({ page }) => {
-      await expect(page.locator('h1:has-text("Record Voice Note")')).toBeVisible();
+      await expect(page.locator('h1:has-text("New Voice Note")')).toBeVisible();
       await expect(page.locator('text=Ready to record')).toBeVisible();
     });
 
