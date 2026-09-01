@@ -6,6 +6,7 @@
 - the Claude provider turns truncation, malformed output, and SDK errors into
   TranslationResult failures without echoing model output.
 """
+import logging
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -165,18 +166,55 @@ class TestRetryPolicy:
         assert provider.calls == 1
         assert t.status == 'failed'
 
-    def test_provider_construction_error_fails_fast_and_logs_type_only(self, user):
+    def test_provider_construction_error_fails_fast_and_logs_type_only(self, user, caplog):
         t = NoteTranslation.objects.create(voice_note=_note(user), target_language='en')
-        with patch('apps.translations.tasks.get_translation_provider',
-                   side_effect=ValueError('secret-ish detail that must not be logged')), \
-             patch('apps.translations.tasks.logger') as log:
-            translate_voice_note_task.apply(args=[t.id])
+        # The app's logging config does not propagate, so attach caplog's real
+        # handler to the module logger: formatted records include exc_info text.
+        task_logger = logging.getLogger('apps.translations.tasks')
+        task_logger.addHandler(caplog.handler)
+        try:
+            with patch('apps.translations.tasks.get_translation_provider',
+                       side_effect=ValueError('secret-ish detail that must not be logged')):
+                translate_voice_note_task.apply(args=[t.id])
+        finally:
+            task_logger.removeHandler(caplog.handler)
         t.refresh_from_db()
         assert t.status == 'failed'
-        # The JSON log config does not propagate to caplog, so inspect the calls.
-        rendered = ' '.join(str(c.args[0]) % tuple(c.args[1:]) for c in log.error.call_args_list + log.warning.call_args_list)
-        assert 'secret-ish' not in rendered
-        assert 'ValueError' in rendered
+        assert 'ValueError' in caplog.text
+        assert 'secret-ish' not in caplog.text
+
+    def test_result_is_discarded_when_the_note_was_retranscribed_meanwhile(self, user):
+        note = _note(user)
+        t = NoteTranslation.objects.create(voice_note=note, target_language='en')
+        ids = [s.id for s in note.segments.all()]
+
+        class RacingProvider:
+            name, model = 'fake', 'fake-1'
+
+            def translate(self, units, source_language, target_language):
+                # The user presses Re-transcribe while the provider call is in flight.
+                invalidate_translations_for_note(note.id)
+                return TranslationResult(success=True, units=[{'id': i, 'text': 'stale'} for i in ids],
+                                         provider='fake', model='fake-1')
+
+        with patch('apps.translations.tasks.get_translation_provider', return_value=RacingProvider()):
+            translate_voice_note_task.apply(args=[t.id])
+        assert not NoteTranslation.objects.filter(voice_note=note).exists()
+
+    def test_failure_is_discarded_when_the_note_was_retranscribed_meanwhile(self, user):
+        note = _note(user)
+        t = NoteTranslation.objects.create(voice_note=note, target_language='en')
+
+        class RacingProvider:
+            name, model = 'fake', 'fake-1'
+
+            def translate(self, units, source_language, target_language):
+                invalidate_translations_for_note(note.id)
+                return TranslationResult(success=False, error='provider error 400', provider='fake', model='fake-1')
+
+        with patch('apps.translations.tasks.get_translation_provider', return_value=RacingProvider()):
+            translate_voice_note_task.apply(args=[t.id])
+        assert not NoteTranslation.objects.filter(voice_note=note).exists()
 
     def test_segments_are_untouched_by_a_translation(self, user):
         note = _note(user)
@@ -263,6 +301,32 @@ class TestClaudeProvider:
         p = self._provider(side_effect=anthropic.APIConnectionError(
             request=httpx.Request('POST', 'https://api.anthropic.com/v1/messages')))
         assert p.translate(self.units, 'es', 'en').retryable is True
+
+    def test_output_schema_is_bound_to_the_pydantic_model(self):
+        # The SDK's own transform of the model is the oracle for what the API
+        # accepts. It keeps $defs/$ref and titles; OUTPUT_SCHEMA inlines and
+        # drops them, so normalise the oracle the same way before comparing.
+        from anthropic.lib._parse._transform import transform_schema
+
+        from apps.translations.services import _TranslationOut
+
+        oracle = transform_schema(_TranslationOut)
+        defs = oracle.pop('$defs', {})
+
+        def normalise(node):
+            if isinstance(node, dict):
+                if '$ref' in node:
+                    node = {**defs[node.pop('$ref').split('/')[-1]], **node}
+                node.pop('title', None)
+                return {k: normalise(v) for k, v in node.items()}
+            if isinstance(node, list):
+                return [normalise(v) for v in node]
+            return node
+
+        assert OUTPUT_SCHEMA == normalise(oracle)
+        # And the schema really is closed at every object level.
+        assert OUTPUT_SCHEMA['additionalProperties'] is False
+        assert OUTPUT_SCHEMA['properties']['units']['items']['additionalProperties'] is False
 
     def test_invalid_effort_is_rejected_at_construction(self):
         with override_settings(**{**PROVIDER_SETTINGS, 'CLIO_TRANSLATION_EFFORT': 'turbo'}), pytest.raises(ValueError):

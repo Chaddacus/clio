@@ -89,27 +89,35 @@ class _TranslationOut(BaseModel):
     units: list[_UnitOut] = Field(description="One entry per input unit, same ids, translated text")
 
 
-# Hand-written so it has no $defs and no open properties: the API enforces it
-# on the model's output, and we validate the returned text against
-# _TranslationOut ourselves so a truncated or malformed response is a
-# controlled failure, not an exception escaping the provider boundary.
-OUTPUT_SCHEMA = {
-    'type': 'object',
-    'properties': {
-        'units': {
-            'type': 'array',
-            'description': 'One entry per input unit, same ids, translated text',
-            'items': {
-                'type': 'object',
-                'properties': {'id': {'type': 'integer'}, 'text': {'type': 'string'}},
-                'required': ['id', 'text'],
-                'additionalProperties': False,
-            },
-        },
-    },
-    'required': ['units'],
-    'additionalProperties': False,
-}
+def _strict_schema(model: type[BaseModel]) -> dict:
+    """JSON schema for the API's output format, derived from the pydantic model.
+
+    One canonical definition: the model validates the reply, and this schema
+    (the same model with $defs inlined, titles dropped, and every object
+    closed) constrains it on the provider side. We validate the returned text
+    ourselves so a truncated or malformed response is a controlled failure,
+    not an exception escaping the provider boundary.
+    """
+    raw = model.model_json_schema()
+    defs = raw.pop('$defs', {})
+
+    def walk(node):
+        if isinstance(node, dict):
+            if '$ref' in node:
+                ref = node.pop('$ref').split('/')[-1]
+                node = {**defs[ref], **node}
+            node.pop('title', None)
+            if node.get('type') == 'object':
+                node.setdefault('additionalProperties', False)
+            return {k: walk(v) for k, v in node.items()}
+        if isinstance(node, list):
+            return [walk(v) for v in node]
+        return node
+
+    return walk(raw)
+
+
+OUTPUT_SCHEMA = _strict_schema(_TranslationOut)
 
 
 # ---- deterministic validation ---------------------------------------------
