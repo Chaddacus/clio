@@ -4,7 +4,8 @@ Contract (docs/ai/translation-capability-contract.md):
   input  -> ordered transcript units (id, speaker, text), source + target language
   output -> one translated text per unit, same ids, same count, no empties
 The LLM handles only the language transfer. This module owns validation on
-both sides, provider selection, and the prompt version. Business code never
+both sides, provider selection, the prompt version, and invalidation of stored
+translations when the transcript they derive from changes. Business code never
 imports the Anthropic SDK directly; it calls ``get_translation_provider()``.
 """
 import json
@@ -14,7 +15,7 @@ from dataclasses import dataclass, field
 from typing import Literal, Optional, Protocol, cast
 
 from django.conf import settings
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,8 @@ class TranscriptUnit:
 class TranslationResult:
     success: bool
     units: list = field(default_factory=list)   # [{'id': int, 'text': str}]
-    error: str = ''
+    error: str = ''                              # operator-facing reason; never model output
+    retryable: bool = False                      # True for transient provider failures
     provider: str = ''
     model: str = ''
     prompt_version: str = PROMPT_VERSION
@@ -85,6 +87,29 @@ class _UnitOut(BaseModel):
 
 class _TranslationOut(BaseModel):
     units: list[_UnitOut] = Field(description="One entry per input unit, same ids, translated text")
+
+
+# Hand-written so it has no $defs and no open properties: the API enforces it
+# on the model's output, and we validate the returned text against
+# _TranslationOut ourselves so a truncated or malformed response is a
+# controlled failure, not an exception escaping the provider boundary.
+OUTPUT_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'units': {
+            'type': 'array',
+            'description': 'One entry per input unit, same ids, translated text',
+            'items': {
+                'type': 'object',
+                'properties': {'id': {'type': 'integer'}, 'text': {'type': 'string'}},
+                'required': ['id', 'text'],
+                'additionalProperties': False,
+            },
+        },
+    },
+    'required': ['units'],
+    'additionalProperties': False,
+}
 
 
 # ---- deterministic validation ---------------------------------------------
@@ -124,10 +149,31 @@ def join_units(translated: list) -> str:
     return ' '.join((t['text'] or '').strip() for t in translated).strip()
 
 
+def invalidate_translations_for_note(note_id: int) -> int:
+    """Public contract for other modules: drop stored translations of a note.
+
+    Call whenever the transcript or its segments change (re-transcription,
+    manual edit). A translation is derived from a specific transcript and its
+    segment ids; once those change it is wrong, and the UI must not show it.
+    Returns the number of rows removed.
+    """
+    from .models import NoteTranslation  # local import: models depend on voice_notes
+
+    deleted, _ = NoteTranslation.objects.filter(voice_note_id=note_id).delete()
+    if deleted:
+        logger.info("Invalidated %d translation(s) for note %d", deleted, note_id)
+    return deleted
+
+
 # ---- providers -------------------------------------------------------------
 
 class ClaudeTranslationProvider:
-    """Claude via the official Anthropic SDK, structured output enforced."""
+    """Claude via the official Anthropic SDK with a JSON-schema output format.
+
+    Uses ``messages.create`` rather than ``messages.parse`` so the stop reason
+    is inspected before the text is validated: a truncated or malformed reply
+    becomes a TranslationResult failure instead of a pydantic exception.
+    """
 
     name = 'anthropic'
 
@@ -158,31 +204,35 @@ class ClaudeTranslationProvider:
         )
         started = time.monotonic()
         try:
-            response = self._client.messages.parse(
+            response = self._client.messages.create(
                 model=self.model,
                 max_tokens=16000,
                 system=SYSTEM_PROMPT,
                 messages=[{'role': 'user', 'content': user_content}],
-                output_format=_TranslationOut,
-                output_config={'effort': self.effort},
+                output_config={'effort': self.effort, 'format': {'type': 'json_schema', 'schema': OUTPUT_SCHEMA}},
             )
-        except self._anthropic.RateLimitError as e:
-            return self._failure(f"provider rate limited: {e}", started)
+        except self._anthropic.RateLimitError:
+            return self._failure("provider rate limited", started, retryable=True)
         except self._anthropic.APIStatusError as e:
-            return self._failure(f"provider error {e.status_code}: {e.message}", started)
-        except self._anthropic.APIConnectionError as e:
-            return self._failure(f"provider unreachable: {e}", started)
+            return self._failure(f"provider error {e.status_code}", started, retryable=e.status_code >= 500)
+        except self._anthropic.APIConnectionError:
+            return self._failure("provider unreachable", started, retryable=True)
 
-        latency_ms = int((time.monotonic() - started) * 1000)
         usage = getattr(response, 'usage', None)
         if response.stop_reason == 'refusal':
             return self._failure("provider declined the request", started)
         if response.stop_reason == 'max_tokens':
             return self._failure("transcript too long to translate in one pass", started)
-        parsed = response.parsed_output
-        if parsed is None:
-            return self._failure("provider returned no structured output", started)
+
+        text = ''.join(getattr(block, 'text', '') for block in response.content if getattr(block, 'type', '') == 'text')
+        try:
+            parsed = _TranslationOut.model_validate_json(text)
+        except ValidationError as e:
+            # Never include the model output in the reason; only the error count.
+            return self._failure(f"provider output failed schema validation ({e.error_count()} error(s))", started)
+
         translated = [{'id': u.id, 'text': u.text} for u in parsed.units]
+        latency_ms = int((time.monotonic() - started) * 1000)
         logger.info(
             "Translation call complete: model=%s units=%d latency_ms=%d in=%s out=%s",
             self.model, len(translated), latency_ms,
@@ -194,10 +244,10 @@ class ClaudeTranslationProvider:
             output_tokens=getattr(usage, 'output_tokens', None), latency_ms=latency_ms,
         )
 
-    def _failure(self, error: str, started: float) -> TranslationResult:
-        logger.error("Translation call failed: %s", error)
+    def _failure(self, error: str, started: float, retryable: bool = False) -> TranslationResult:
+        logger.error("Translation call failed: %s (retryable=%s)", error, retryable)
         return TranslationResult(
-            success=False, error=error, provider=self.name, model=self.model,
+            success=False, error=error, retryable=retryable, provider=self.name, model=self.model,
             latency_ms=int((time.monotonic() - started) * 1000),
         )
 

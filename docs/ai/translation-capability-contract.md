@@ -41,9 +41,10 @@ None. The model has no tools; it cannot read, write, or call anything.
 
 ## Provider / model policy
 
-- Claude first: `ClaudeTranslationProvider` via the official `anthropic` SDK (`client.messages.parse`).
+- Claude first: `ClaudeTranslationProvider` via the official `anthropic` SDK (`client.messages.create` with a JSON-schema output format).
 - Model `CLIO_TRANSLATION_MODEL`, default `claude-opus-5`. Effort `CLIO_TRANSLATION_EFFORT`, default `medium`.
 - Business code calls `get_translation_provider()` only. A second provider is a new class behind the same `TranslationProvider` protocol.
+- The call is `messages.create` with `output_config.format` (JSON schema) so the stop reason is inspected before the text is validated; `messages.parse` would raise on a truncated reply.
 - Not wired yet (needs a live key to verify the request shape): server-side fallbacks, streaming for very long notes.
 
 ## Budgets
@@ -54,6 +55,14 @@ None. The model has no tools; it cannot read, write, or call anything.
 | Output tokens | 16 000 per call; longer notes fail with a clear reason (limitation) |
 | Iterations | One call per (note, language). No agent loop. |
 | Cost | One call per requested language; re-requests return the stored row |
+
+## Invalidation
+
+A translation is derived from one transcript and its segment ids. Re-transcription (`retranscribe_voice_note_task`) and a manual transcript edit (`PATCH /api/notes/<id>/` with a changed `transcription`) call `invalidate_translations_for_note`, the module's public contract, which deletes the note's translation rows. The user requests a fresh translation afterwards; nothing stale is ever shown.
+
+## Retry policy
+
+Transient provider failures (rate limit, HTTP 5xx, connection errors) are retried by the Celery task up to two times, 15 s apart, and the row stays `pending` while a retry is scheduled. Refusals, truncation, schema-invalid output, contract violations, and configuration errors fail immediately: a retry would repeat the same outcome at cost.
 
 ## Fallback behaviour
 
@@ -70,4 +79,4 @@ None. The model has no tools; it cannot read, write, or call anything.
 ## Observability
 
 - Structured logs on every call: model, unit count, latency, token counts, failure reason. Request id (`trace_id`) propagates from the API into the task through `set_request_id`.
-- Never logged: transcript text, translated text, the key.
+- Never logged: transcript text, translated text, the key. Provider failures are reduced to a reason string before they leave the provider (schema errors carry only an error count; unexpected exceptions are logged by type name).

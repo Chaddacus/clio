@@ -4,6 +4,11 @@ The row is created by the API in 'pending' state; this task runs the provider,
 validates the output against the contract, and writes either 'completed' with
 text + aligned segments or 'failed' with a user-safe message. It never touches
 VoiceNote.transcription or the TranscriptionSegment rows.
+
+Retry policy: only transient provider failures (rate limit, 5xx, connection)
+are retried, and the row stays 'pending' while a retry is scheduled so the UI
+keeps polling. Configuration errors, refusals, truncation, and contract
+violations fail immediately; a retry would repeat the same outcome at cost.
 """
 import logging
 import time
@@ -18,9 +23,10 @@ from .services import get_translation_provider, join_units, units_from_note, val
 logger = logging.getLogger(__name__)
 
 USER_ERROR = "Translation failed. Please try again."
+RETRY_DELAY_SECONDS = 15
 
 
-@shared_task(bind=True, max_retries=1, default_retry_delay=15)
+@shared_task(bind=True, max_retries=2)
 def translate_voice_note_task(self, translation_id: int, trace_id: str = '') -> None:
     set_request_id(trace_id)
     started = time.monotonic()
@@ -39,10 +45,12 @@ def translate_voice_note_task(self, translation_id: int, trace_id: str = '') -> 
     try:
         provider = get_translation_provider()
         result = provider.translate(units, source_language, translation.target_language)
-    except Exception as exc:  # provider construction or unexpected failure
-        logger.error("Translation task error for %d: %s", translation_id, exc, exc_info=True)
-        _fail(translation, USER_ERROR, log=str(exc))
-        raise self.retry(exc=exc)
+    except Exception as exc:
+        # Configuration or programming error. Log the type, not the message:
+        # provider exceptions can embed request or response content.
+        logger.error("Translation task error for %d: %s", translation_id, type(exc).__name__, exc_info=True)
+        _fail(translation, USER_ERROR, log=type(exc).__name__)
+        return
 
     translation.provider = result.provider
     translation.model = result.model
@@ -52,6 +60,13 @@ def translate_voice_note_task(self, translation_id: int, trace_id: str = '') -> 
     translation.source_language = source_language
 
     if not result.success:
+        if result.retryable and self.request.retries < self.max_retries:
+            translation.save()
+            logger.warning(
+                "Translation %d transient failure (%s); retry %d/%d in %ds",
+                translation.id, result.error, self.request.retries + 1, self.max_retries, RETRY_DELAY_SECONDS,
+            )
+            raise self.retry(countdown=RETRY_DELAY_SECONDS)
         _fail(translation, USER_ERROR, log=result.error)
         return
 

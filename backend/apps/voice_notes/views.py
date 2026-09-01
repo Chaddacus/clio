@@ -14,6 +14,7 @@ from rest_framework.response import Response
 
 from apps.core.middleware import get_request_id
 from apps.core.services import AudioProcessingService, get_transcription_service
+from apps.translations.services import invalidate_translations_for_note
 from apps.users.models import UserProfile
 
 from .models import Folder, Speaker, Tag, TranscriptionSegment, VoiceNote
@@ -157,6 +158,16 @@ class VoiceNoteDetailView(generics.RetrieveUpdateDestroyAPIView):
         return VoiceNote.objects.filter(
             user=self.request.user
         ).select_related('user').prefetch_related('tags', 'segments', 'speakers')
+
+    def perform_update(self, serializer):
+        # A manual transcript edit invalidates stored translations: they were
+        # derived from the previous text (translations public contract).
+        instance = serializer.instance
+        new_text = serializer.validated_data.get('transcription')
+        text_changed = new_text is not None and new_text != instance.transcription
+        serializer.save()
+        if text_changed:
+            invalidate_translations_for_note(instance.id)
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()

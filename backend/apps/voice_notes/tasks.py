@@ -6,6 +6,7 @@ from celery import shared_task
 
 from apps.core.middleware import set_request_id
 from apps.core.services import AudioProcessingService, get_transcription_service
+from apps.translations.services import invalidate_translations_for_note
 
 from .models import VoiceNote
 from .views import _update_storage, create_segments_for_note
@@ -93,6 +94,9 @@ def retranscribe_voice_note_task(self, note_id: int, language: str = 'auto', tra
                 note.segments.all().delete()
                 if result.get('segments'):
                     create_segments_for_note(note, result['segments'])
+                # Stored translations derive from the old transcript and its
+                # segment ids; they are wrong now (translations public contract).
+                invalidate_translations_for_note(note.id)
             logger.info("Re-transcription task completed for note %d", note_id)
         else:
             note.status = 'failed'

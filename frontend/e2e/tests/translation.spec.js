@@ -164,3 +164,21 @@ test('live: Spanish upload translated to English', async ({ page }) => {
   await expect(text).toContainText(/sister/i);
   await page.screenshot({ path: 'test-results/translation-live.png', fullPage: true });
 });
+
+test('a failing translations request shows a load error with Retry instead of hiding the panel', async ({ page }) => {
+  let calls = 0;
+  await page.route(`**/api/notes/${NOTE_ID}/`, (route) => json(route, mockNote));
+  await page.route(`**/api/notes/${NOTE_ID}/translations/`, (route) => {
+    calls += 1;
+    // First load fails; the manual Retry is the next request and succeeds.
+    if (calls === 1) return json(route, { detail: 'boom' }, 500);
+    return json(route, { success: true, enabled: true, data: [] });
+  });
+
+  await page.goto(`/notes/${NOTE_ID}`);
+  const error = page.getByTestId('translation-load-error');
+  await expect(error).toBeVisible();
+  await error.getByRole('button', { name: 'Retry' }).click();
+  await expect(page.getByTestId('translation-empty')).toBeVisible();
+  expect(calls).toBe(2);
+});

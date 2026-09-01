@@ -26,6 +26,7 @@ Deepgram cannot translate. An LLM can, and it keeps speaker turns aligned throug
 
 ## Consequences
 
+- Re-transcribing or editing a transcript deletes its stored translations (the translations module exposes `invalidate_translations_for_note` for this). The user re-requests them.
 - One more secret to provision on the Linode box.
 - Long notes (more than about 16 000 output tokens) fail with a clear reason; streaming or chunking is a follow-up.
 - Server-side fallbacks are not enabled until a live key lets us verify the request shape.

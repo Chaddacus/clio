@@ -25,11 +25,14 @@ const TranslationPanel: React.FC<Props> = ({ noteId, noteStatus, sourceLanguage,
   const [target, setTarget] = useState(() => defaultTarget(sourceLanguage));
   const [selected, setSelected] = useState<string | null>(null);
 
-  const { data, isLoading, refetch } = useQuery(
+  const { data, isLoading, isError, refetch } = useQuery(
     ['translations', noteId],
     () => translationsAPI.list(noteId),
     {
       enabled: noteStatus === 'completed',
+      // No automatic retries: a failed load renders an alert with a manual Retry,
+      // and silent background retries would only delay that state.
+      retry: false,
       // Poll while any translation is in flight; stop when all are terminal.
       refetchInterval: (res) =>
         res?.data?.data?.some((t) => t.status === 'pending') ? 2500 : false,
@@ -50,7 +53,21 @@ const TranslationPanel: React.FC<Props> = ({ noteId, noteStatus, sourceLanguage,
     }
   );
 
-  if (noteStatus !== 'completed' || isLoading || !data) return null;
+  if (noteStatus !== 'completed' || isLoading) return null;
+
+  if (isError || !data) {
+    return (
+      <div className="card p-6" data-testid="translation-panel">
+        <h3 className="font-editorial text-xl font-light text-on-surface mb-2">Translation</h3>
+        <div role="alert" className="flex items-center justify-between text-sm" data-testid="translation-load-error">
+          <span className="text-error">Translations could not be loaded.</span>
+          <button type="button" onClick={() => refetch()} className="btn-secondary text-xs py-1 px-3">
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const enabled = data.data.enabled;
   const translations: NoteTranslation[] = data.data.data ?? [];
