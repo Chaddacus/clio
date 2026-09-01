@@ -55,3 +55,6 @@ logs/
 *.temp
 # Playwright saved login state for the local test user
 frontend/playwright/.auth/
+
+# AI eval run manifests (evidence lives in CI artifacts, not Git)
+backend/evals/**/results/

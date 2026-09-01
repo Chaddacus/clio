@@ -71,6 +71,33 @@ export interface Speaker {
   name: string;
 }
 
+export interface NoteTranslationSegment {
+  segment_id: number;
+  text: string;
+}
+
+// One stored translation of a note's transcript (apps.translations on the backend).
+export interface NoteTranslation {
+  id: number;
+  voice_note: number;
+  target_language: string;
+  source_language: string;
+  status: 'pending' | 'completed' | 'failed';
+  text: string;
+  segments: NoteTranslationSegment[];
+  error_message: string;
+  model: string;
+  prompt_version: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TranslationListResponse {
+  success: boolean;
+  enabled: boolean;
+  data: NoteTranslation[];
+}
+
 export type SupportKind = 'bug' | 'change' | 'feature';
 
 export interface SupportRequest {

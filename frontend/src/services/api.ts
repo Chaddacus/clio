@@ -3,7 +3,8 @@ import {
   User, AuthTokens, RegisterData, LoginData, UserProfile,
   VoiceNote, VoiceNoteListItem, CreateVoiceNoteData, UpdateVoiceNoteData,
   Tag, Folder, Speaker, SupportRequest, SupportKind, PaginatedResponse, UserStats,
-  TranscriptionResult, ApiResponse, VoiceNotesFilters
+  TranscriptionResult, ApiResponse, VoiceNotesFilters,
+  NoteTranslation, TranslationListResponse
 } from '../types';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
@@ -184,6 +185,14 @@ export const foldersAPI = {
 export const speakersAPI = {
   update: (id: number, data: { name: string }): Promise<AxiosResponse<Speaker>> =>
     api.patch(`/speakers/${id}/`, data),
+};
+
+// Translations API (stored translations of a note's transcript)
+export const translationsAPI = {
+  list: (noteId: number): Promise<AxiosResponse<TranslationListResponse>> =>
+    api.get(`/notes/${noteId}/translations/`),
+  request: (noteId: number, target_language: string): Promise<AxiosResponse<ApiResponse<NoteTranslation>>> =>
+    api.post(`/notes/${noteId}/translations/`, { target_language }),
 };
 
 // Support API (in-app change requests / bug reports -> codex self-heal pipeline)

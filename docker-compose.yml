@@ -47,6 +47,10 @@ services:
       - WHISPER_MODEL=${WHISPER_MODEL:-whisper-1}
       - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY:-}
       - DEEPGRAM_MODEL=${DEEPGRAM_MODEL:-nova-3}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - CLIO_TRANSLATION_MODEL=${CLIO_TRANSLATION_MODEL:-claude-opus-5}
+      - CLIO_TRANSLATION_EFFORT=${CLIO_TRANSLATION_EFFORT:-medium}
+      - CLIO_TRANSLATION_TIMEOUT_SECONDS=${CLIO_TRANSLATION_TIMEOUT_SECONDS:-120}
       - ALLOWED_HOSTS=localhost,127.0.0.1,backend
       - REDIS_URL=redis://redis:6379/0
       # Anonymous throttle (settings.py default 60/minute). CI raises it: the
@@ -112,6 +116,10 @@ services:
       - WHISPER_MODEL=${WHISPER_MODEL:-whisper-1}
       - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY:-}
       - DEEPGRAM_MODEL=${DEEPGRAM_MODEL:-nova-3}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - CLIO_TRANSLATION_MODEL=${CLIO_TRANSLATION_MODEL:-claude-opus-5}
+      - CLIO_TRANSLATION_EFFORT=${CLIO_TRANSLATION_EFFORT:-medium}
+      - CLIO_TRANSLATION_TIMEOUT_SECONDS=${CLIO_TRANSLATION_TIMEOUT_SECONDS:-120}
       - REDIS_URL=redis://redis:6379/0
     volumes:
       - ./backend:/app
