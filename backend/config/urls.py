@@ -7,7 +7,7 @@ from drf_spectacular.views import (
     SpectacularRedocView,
     SpectacularSwaggerView,
 )
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
@@ -16,7 +16,11 @@ from apps.core.media_views import AudioFileView, serve_voice_note_audio
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+@throttle_classes([])
 def health_check(request):
+    """Liveness probe. Exempt from the anonymous throttle: uptime checks and the
+    e2e suite hit it alongside unauthenticated traffic, and a 429 here reads as an
+    outage."""
     return Response({'status': 'ok'})
 
 
