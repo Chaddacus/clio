@@ -8,7 +8,6 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAudioRecorder } from '../../hooks/useAudioRecorder';
 import WaveformDisplay from './WaveformDisplay';
-import PerformanceIndicator from '../Performance/PerformanceIndicator';
 import toast from 'react-hot-toast';
 
 interface RecorderControlsProps {
@@ -17,7 +16,6 @@ interface RecorderControlsProps {
   onRecordingStop?: () => void;
   disabled?: boolean;
   className?: string;
-  showPerformanceIndicator?: boolean;
 }
 
 const RecorderControls: React.FC<RecorderControlsProps> = ({
@@ -26,7 +24,6 @@ const RecorderControls: React.FC<RecorderControlsProps> = ({
   onRecordingStop,
   disabled = false,
   className = '',
-  showPerformanceIndicator = true,
 }) => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
 
@@ -43,11 +40,13 @@ const RecorderControls: React.FC<RecorderControlsProps> = ({
     enablePerformanceManagement: true,
   });
 
+  const { checkMicrophonePermission } = recorder;
+
   // Check microphone permission on component mount
   useEffect(() => {
     const checkInitialPermission = async () => {
       try {
-        const permission = await recorder.checkMicrophonePermission();
+        const permission = await checkMicrophonePermission();
         setHasPermission(permission);
       } catch (error) {
         console.error('Error checking microphone permission:', error);
@@ -56,7 +55,7 @@ const RecorderControls: React.FC<RecorderControlsProps> = ({
     };
 
     checkInitialPermission();
-  }, [recorder.checkMicrophonePermission]);
+  }, [checkMicrophonePermission]);
 
   const handleStartRecording = async () => {
     try {

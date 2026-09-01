@@ -28,7 +28,6 @@ const PerformanceIndicator: React.FC<PerformanceIndicatorProps> = ({
     qualitySettings,
     performanceStatus,
     getQualityDescription,
-    getPerformanceStatusColor,
     getPerformanceStatusText,
     getRecommendedSettings
   } = performanceManager;

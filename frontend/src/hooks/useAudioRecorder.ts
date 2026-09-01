@@ -19,7 +19,8 @@ export const useAudioRecorder = (options: UseAudioRecorderOptions = {}) => {
     onDataAvailable,
     onRecordingComplete,
     onError,
-    enablePerformanceManagement = true
+    // enablePerformanceManagement is intentionally not destructured: the
+    // performance-manager block below is disabled, so nothing reads it yet.
   } = options;
 
   // Performance management DISABLED - was causing MediaRecorder interference
@@ -49,7 +50,6 @@ export const useAudioRecorder = (options: UseAudioRecorderOptions = {}) => {
   const audioContextRef = useRef<AudioContext | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const audioLevelUpdateRef = useRef<NodeJS.Timeout | null>(null);
-  const lastAudioLevelUpdate = useRef<number>(0);
 
   // Audio quality settings - using defaults since Performance Manager is disabled
   const getEffectiveSampleRate = useCallback(() => {
@@ -62,10 +62,6 @@ export const useAudioRecorder = (options: UseAudioRecorderOptions = {}) => {
 
   const shouldEnableVisualization = useCallback(() => {
     return true;        // Always enable visualization
-  }, []);
-
-  const getAudioAnalysisInterval = useCallback(() => {
-    return 16;          // 60fps default
   }, []);
 
   const shouldEnableDebugLogging = useCallback(() => {
@@ -166,16 +162,6 @@ export const useAudioRecorder = (options: UseAudioRecorderOptions = {}) => {
         {}
       ];
 
-      let mediaRecorderOptions: MediaRecorderOptions = {};
-
-      // Find the first supported configuration
-      for (const config of fallbackConfigs) {
-        if (!config.mimeType || MediaRecorder.isTypeSupported(config.mimeType)) {
-          mediaRecorderOptions = { ...config };
-          break;
-        }
-      }
-
       let mediaRecorder!: MediaRecorder;
       let creationSuccess = false;
       let lastError: any = null;
@@ -234,7 +220,7 @@ export const useAudioRecorder = (options: UseAudioRecorderOptions = {}) => {
         if (audioBlob.size === 0) {
           console.error('[useAudioRecorder] Created empty audio blob!', {
             chunksAvailable: chunksRef.current.length,
-            recordingDuration: state.recordingTime
+            recordingDuration: recordingTimeRef.current
           });
           onError?.(new Error('Recording failed: Empty audio data'));
           return;
@@ -340,7 +326,7 @@ export const useAudioRecorder = (options: UseAudioRecorderOptions = {}) => {
       if (shouldEnableVisualization() && analyzerRef.current) {
         // Add small delay to ensure MediaRecorder is fully started
         setTimeout(() => {
-          updateAudioLevel();
+          updateAudioLevelRef.current();
         }, 200); // 200ms delay to ensure proper coordination
       }
 
@@ -384,9 +370,9 @@ export const useAudioRecorder = (options: UseAudioRecorderOptions = {}) => {
 
       onError?.(audioError);
     }
-  }, [mimeType, sampleRate, onDataAvailable, onRecordingComplete, onError,
-      getEffectiveSampleRate, getEffectiveMimeType, shouldEnableVisualization,
-      shouldEnableDebugLogging]); // Removed performanceManager and currentQualitySettings
+  }, [onDataAvailable, onRecordingComplete, onError,
+      getEffectiveSampleRate, getEffectiveMimeType,
+      shouldEnableVisualization]); // Removed performanceManager and currentQualitySettings
 
   const stopRecording = useCallback(() => {
     if (state.mediaRecorder && state.isRecording) {
@@ -471,10 +457,15 @@ export const useAudioRecorder = (options: UseAudioRecorderOptions = {}) => {
   // Track recording state in a ref so the audio loop can read it without stale closures
   const isRecordingRef = useRef(false);
   const isPausedRef = useRef(false);
+  const recordingTimeRef = useRef(0);
+  // Lets startRecording, which is defined above updateAudioLevel, reach the
+  // current implementation without depending on it.
+  const updateAudioLevelRef = useRef<() => void>(() => {});
 
   // Keep refs in sync
   isRecordingRef.current = state.isRecording;
   isPausedRef.current = state.isPaused;
+  recordingTimeRef.current = state.recordingTime;
 
   const updateAudioLevel = useCallback(() => {
     const analyzer = analyzerRef.current;
@@ -516,6 +507,8 @@ export const useAudioRecorder = (options: UseAudioRecorderOptions = {}) => {
     // Schedule next frame
     animationFrameRef.current = requestAnimationFrame(updateAudioLevel);
   }, []);
+
+  updateAudioLevelRef.current = updateAudioLevel;
 
   const getVisualizationData = useCallback((): AudioVisualizationData | null => {
     if (!analyzerRef.current) return null;

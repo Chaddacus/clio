@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MicrophoneIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../hooks/useAuth';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 
